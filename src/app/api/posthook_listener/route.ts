@@ -47,8 +47,20 @@ async function sendPushToAllDevices(notification: { title: string; body: string 
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null)
-  const { type, id } = body?.data ?? body ?? {}
+  const raw = await req.text().catch(() => '')
+  console.log('[posthook_listener] raw body:', raw)
+
+  let body: Record<string, unknown> | null = null
+  try {
+    // PostHook sometimes wraps the payload in single quotes
+    const cleaned = raw.trim().replace(/^'+|'+$/g, '')
+    body = JSON.parse(cleaned)
+  } catch {
+    console.error('[posthook_listener] Failed to parse body:', raw)
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const { type, id } = (body?.data as Record<string, unknown> ?? body) ?? {}
 
   if (!type || !id) {
     return NextResponse.json({ error: 'Missing type or id in payload' }, { status: 400 })
