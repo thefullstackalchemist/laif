@@ -7,6 +7,10 @@ function getApp() {
   if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT env variable is not set')
 
   const serviceAccount = JSON.parse(raw)
+  // .env files escape \n → \\n in the private key — restore actual newlines
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n')
+  }
 
   return admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
