@@ -43,7 +43,8 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           alt="laif"
           width={42}
           height={42}
-          className="flex-shrink-0"
+          unoptimized
+          className="flex-shrink-0 object-contain"
           style={theme === 'light' ? { filter: 'invert(1)' } : undefined}
         />
         <AnimatePresence>

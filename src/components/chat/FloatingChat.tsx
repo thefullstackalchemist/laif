@@ -245,7 +245,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
               style={{ borderBottom: '1px solid var(--border)', background: 'var(--accent-dim)' }}
             >
               <div className="flex items-center gap-2.5">
-                <Image src="/logo-white.png" alt="laif" width={38} height={38} className="object-contain" style={logoFilter} />
+                <Image src="/logo-white.png" alt="laif" unoptimized width={38} height={38} className="object-contain" style={logoFilter} />
                 <p className="text-xs" style={{ color: streaming ? (theme === 'light' ? '#047857' : '#34d399') : 'var(--text-3)' }}>
                   {streaming ? 'Working...' : 'a real assistant'}
                 </p>
@@ -273,7 +273,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
               {messages.map(msg => (
                 <div key={msg.id} className={cn('flex items-start', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
                   {msg.role === 'assistant' && (
-                    <Image src="/logo-white.png" alt="laif" width={24} height={24} className="object-contain mr-2 flex-shrink-0" style={logoFilter} />
+                    <Image src="/logo-white.png" alt="laif" unoptimized width={24} height={24} className="object-contain mr-2 flex-shrink-0" style={logoFilter} />
                   )}
                   <div
                     className={cn(
@@ -359,7 +359,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
             </motion.div>
           ) : (
             <motion.div key="logo" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
-              <Image src="/logo-white.png" alt="laif" width={28} height={28} className="object-contain" />
+              <Image src="/logo-white.png" alt="laif" unoptimized width={28} height={28} className="object-contain" />
             </motion.div>
           )}
         </AnimatePresence>

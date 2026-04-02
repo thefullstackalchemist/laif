@@ -48,6 +48,7 @@ export default function NotesPage() {
             alt="laif"
             width={36}
             height={36}
+            unoptimized
             className="object-contain"
             style={theme === 'light' ? { filter: 'invert(1)' } : undefined}
           />

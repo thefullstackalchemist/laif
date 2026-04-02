@@ -59,7 +59,8 @@ export default function LoginPage() {
             alt="laif"
             width={72}
             height={72}
-            className="mb-3"
+            unoptimized
+            className="mb-3 object-contain"
             style={{ filter: 'drop-shadow(0 0 24px rgba(139,92,246,0.5))' }}
           />
           <p className="text-slate-500 text-sm mt-1">Your intelligent life manager</p>
