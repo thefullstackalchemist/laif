@@ -6,7 +6,9 @@ function getApp() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT
   if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT env variable is not set')
 
-  const serviceAccount = JSON.parse(raw)
+  // Strip surrounding single or double quotes if pasted with them in Vercel
+  const cleaned = raw.trim().replace(/^(['"])([\s\S]*)\1$/, '$2')
+  const serviceAccount = JSON.parse(cleaned)
   // .env files escape \n → \\n in the private key — restore actual newlines
   if (serviceAccount.private_key) {
     serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n')
