@@ -22,15 +22,21 @@ const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
   { id: 'reminder', label: 'Reminder', icon: Bell },
 ]
 
+// Format a Date as a local datetime string for datetime-local inputs (no UTC conversion)
+function toLocalDT(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 const now = () => {
   const d = new Date()
   d.setSeconds(0, 0)
-  return d.toISOString().slice(0, 16)
+  return toLocalDT(d)
 }
 const hourLater = () => {
   const d = new Date()
   d.setHours(d.getHours() + 1, 0, 0, 0)
-  return d.toISOString().slice(0, 16)
+  return toLocalDT(d)
 }
 
 export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaultStart, defaultEnd }: AddItemModalProps) {
