@@ -1,0 +1,260 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ── Dark theme (default) ────────────────────────────────── */
+  :root, [data-theme="dark"] {
+    --bg: #0d0d14;
+    --surface: #13131f;
+    --card: #1a1a2e;
+    --border: rgba(255, 255, 255, 0.07);
+    --border-hover: rgba(255, 255, 255, 0.14);
+    --text-1: #f1f5f9;
+    --text-2: #94a3b8;
+    --text-3: #4d5566;
+    --accent: #8b5cf6;
+    --accent-light: #a78bfa;
+    --accent-dim: rgba(139, 92, 246, 0.15);
+    --accent-glow: rgba(139, 92, 246, 0.3);
+    --btn-primary-bg: #8b5cf6;
+    --btn-primary-hover: #a78bfa;
+
+    /* Calendar-specific */
+    --cal-header-bg: rgba(13, 13, 20, 0.85);
+    --cal-today-bg: rgba(139, 92, 246, 0.06);
+    --cal-row-border: rgba(255, 255, 255, 0.05);
+    --cal-row-border-half: rgba(255, 255, 255, 0.025);
+    --cal-col-border: rgba(255, 255, 255, 0.05);
+    --cal-cell-bg: rgba(255, 255, 255, 0.01);
+    --cal-weekend-bg: rgba(255, 255, 255, 0.005);
+    --cal-out-of-month-bg: transparent;
+    --cal-hover-bg: rgba(255, 255, 255, 0.03);
+
+    /* Glass */
+    --glass-bg: rgba(26, 26, 46, 0.7);
+    --glass-card-bg: rgba(19, 19, 31, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.08);
+
+    /* Scrollbar */
+    --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+
+    /* Input */
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --input-border: rgba(255, 255, 255, 0.1);
+
+    /* Sidebar */
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+    --sidebar-item-hover: rgba(255, 255, 255, 0.05);
+    --sidebar-active-bg: rgba(139, 92, 246, 0.15);
+    --sidebar-active-color: #a78bfa;
+  }
+
+  /* ── Light theme (orange / Todoist-like) ─────────────────── */
+  [data-theme="light"] {
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --card: #ffffff;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-hover: rgba(0, 0, 0, 0.16);
+    --text-1: #1f1f1f;
+    --text-2: #6b7280;
+    --text-3: #9ca3af;
+    --accent: #db4035;
+    --accent-light: #e8601c;
+    --accent-dim: rgba(219, 64, 53, 0.12);
+    --accent-glow: rgba(219, 64, 53, 0.25);
+    --btn-primary-bg: #db4035;
+    --btn-primary-hover: #e8601c;
+
+    /* Calendar */
+    --cal-header-bg: rgba(250, 249, 247, 0.92);
+    --cal-today-bg: rgba(219, 64, 53, 0.06);
+    --cal-row-border: rgba(0, 0, 0, 0.06);
+    --cal-row-border-half: rgba(0, 0, 0, 0.03);
+    --cal-col-border: rgba(0, 0, 0, 0.07);
+    --cal-cell-bg: rgba(255, 255, 255, 0.7);
+    --cal-weekend-bg: rgba(249, 245, 245, 0.8);
+    --cal-out-of-month-bg: rgba(240, 240, 240, 0.4);
+    --cal-hover-bg: rgba(219, 64, 53, 0.03);
+
+    /* Glass */
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-card-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(0, 0, 0, 0.08);
+
+    /* Scrollbar */
+    --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.22);
+
+    /* Input */
+    --input-bg: rgba(0, 0, 0, 0.04);
+    --input-border: rgba(0, 0, 0, 0.1);
+
+    /* Sidebar */
+    --sidebar-border: rgba(0, 0, 0, 0.07);
+    --sidebar-item-hover: rgba(0, 0, 0, 0.04);
+    --sidebar-active-bg: rgba(219, 64, 53, 0.1);
+    --sidebar-active-color: #db4035;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text-1);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    overflow: hidden;
+    height: 100dvh;
+  }
+
+  ::selection {
+    background: var(--accent-glow);
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+}
+
+@layer components {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+  }
+
+  .glass-card {
+    background: var(--glass-card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 rounded-xl text-white font-medium text-sm transition-all duration-150 active:scale-95;
+    background: var(--btn-primary-bg);
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+  .btn-primary:hover {
+    background: var(--btn-primary-hover);
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .btn-ghost {
+    @apply px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 active:scale-95;
+    color: var(--text-2);
+  }
+  .btn-ghost:hover {
+    color: var(--text-1);
+    background: var(--sidebar-item-hover);
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 rounded-xl text-sm placeholder-slate-500 outline-none transition-all duration-150;
+    color: var(--text-1);
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+  }
+  .input-field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+  }
+  [data-theme="light"] .input-field {
+    placeholder-color: #9ca3af;
+  }
+
+  .label {
+    @apply block text-xs font-medium mb-1.5;
+    color: var(--text-2);
+  }
+
+  /* Month grid cell backgrounds — CSS-only so they always reflect current theme */
+  .cal-day-cell {
+    background: var(--cal-cell-bg);
+    transition: background 0.1s;
+  }
+  .cal-day-cell:hover { background: var(--cal-hover-bg); }
+  .cal-day-today      { background: var(--cal-today-bg) !important; }
+  .cal-day-weekend    { background: var(--cal-weekend-bg); }
+  .cal-day-out        { background: var(--cal-out-of-month-bg); }
+
+  .item-pill {
+    @apply flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium truncate cursor-pointer
+      transition-all duration-150 hover:opacity-80 active:scale-95;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer;
+    color: var(--text-2);
+  }
+  .sidebar-item:hover {
+    color: var(--text-1);
+    background: var(--sidebar-item-hover);
+  }
+  .sidebar-item.active {
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-active-color);
+  }
+}
+
+@layer utilities {
+  .gradient-text {
+    background: linear-gradient(135deg, var(--accent), #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  [data-theme="light"] .gradient-text {
+    background: linear-gradient(135deg, #db4035, #e8601c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .noise-bg {
+    position: relative;
+  }
+  .noise-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .bg-white\/8 {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Light mode overrides for hardcoded dark inline styles */
+  [data-theme="light"] .shadow-float {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  }
+}
