@@ -3,6 +3,8 @@ import { connectDB } from '@/lib/mongodb'
 import EventModel from '@/lib/models/Event'
 import ReminderModel from '@/lib/models/Reminder'
 import TaskModel from '@/lib/models/Task'
+import DeviceModel from '@/lib/models/Device'
+import { messaging } from '@/lib/firebase-admin'
 
 const SUPPORTED_TYPES = ['event', 'reminder', 'task'] as const
 type ItemType = typeof SUPPORTED_TYPES[number]
@@ -13,9 +15,39 @@ const MODEL_MAP = {
   task:     TaskModel,
 }
 
+const NOTIFICATION_COPY: Record<ItemType, (title: string) => { title: string; body: string }> = {
+  event:    t => ({ title: '📅 Upcoming event',  body: `"${t}" starts in 15 minutes` }),
+  reminder: t => ({ title: '🔔 Reminder',         body: t }),
+  task:     t => ({ title: '✅ Task due',          body: `"${t}" is due now` }),
+}
+
+async function sendPushToAllDevices(notification: { title: string; body: string }, data: Record<string, string>) {
+  await connectDB()
+  const devices = await DeviceModel.find({}).lean() as { fcmToken: string }[]
+  if (!devices.length) return
+
+  const msg = messaging()
+  const results = await Promise.allSettled(
+    devices.map(d =>
+      msg.send({
+        token: d.fcmToken,
+        notification,
+        data,
+        android: {
+          priority: 'high',
+          notification: { sound: 'default', channelId: 'laif_notifications' },
+        },
+      })
+    )
+  )
+
+  const failed = results.filter(r => r.status === 'rejected')
+  if (failed.length) console.warn(`[posthook_listener] ${failed.length} push(es) failed`)
+  console.log(`[posthook_listener] Sent ${results.length - failed.length}/${results.length} notifications`)
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null)
-
   const { type, id } = body?.data ?? body ?? {}
 
   if (!type || !id) {
@@ -35,17 +67,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, skipped: 'item not found' })
   }
 
-  console.log(`[posthook_listener] Fired for ${type}:${id} — title: ${item.title}`)
+  const title = String(item.title ?? '')
+  console.log(`[posthook_listener] Fired for ${type}:${id} — "${title}"`)
 
-  // ── Send push notification ──────────────────────────────────────────────
-  // TODO: integrate FCM here once Firebase is configured
-  // await sendPushNotification({ type, item })
-  // ───────────────────────────────────────────────────────────────────────
+  const notification = NOTIFICATION_COPY[type as ItemType](title)
+  await sendPushToAllDevices(notification, { type, id: String(id) })
 
-  // Mark reminder as notified
   if (type === 'reminder') {
     await ReminderModel.findByIdAndUpdate(id, { notified: true })
   }
 
-  return NextResponse.json({ ok: true, type, id, title: item.title })
+  return NextResponse.json({ ok: true, type, id, title })
 }
