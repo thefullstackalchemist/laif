@@ -23,7 +23,7 @@ const NOTIFICATION_COPY: Record<ItemType, (title: string) => { title: string; bo
 
 async function sendPushToAllDevices(notification: { title: string; body: string }, data: Record<string, string>) {
   await connectDB()
-  const devices = await DeviceModel.find({}).lean() as { fcmToken: string }[]
+  const devices = await DeviceModel.find({}).lean() as unknown as { fcmToken: string }[]
   if (!devices.length) return
 
   const msg = messaging()
