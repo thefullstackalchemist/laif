@@ -1,7 +1,7 @@
 import Posthook from '@posthook/node'
 
 const apiKey = process.env.POSTHOOK_API_KEY ?? process.env.POSTHOOK_API
-const posthook = apiKey ? new Posthook(apiKey) : null
+const posthook = apiKey ? new Posthook(apiKey, { timeout: 8000 }) : null
 
 export type SchedulableType = 'event' | 'reminder' | 'task'
 
