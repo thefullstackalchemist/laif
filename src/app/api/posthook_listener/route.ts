@@ -60,7 +60,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const { type, id } = (body?.data as Record<string, unknown> ?? body) ?? {}
+  const payload = (body?.data as Record<string, unknown> | null) ?? body ?? {}
+  const type = payload.type as string | undefined
+  const id   = payload.id   as string | undefined
 
   if (!type || !id) {
     return NextResponse.json({ error: 'Missing type or id in payload' }, { status: 400 })
