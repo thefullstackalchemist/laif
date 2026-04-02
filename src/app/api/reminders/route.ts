@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectDB } from '@/lib/mongodb'
 import ReminderModel from '@/lib/models/Reminder'
+import { scheduleNotification } from '@/lib/posthook'
 
 type LeanDoc = Record<string, unknown> & { _id: unknown }
 
@@ -15,5 +16,15 @@ export async function POST(req: Request) {
   const body = await req.json()
   const reminder = await ReminderModel.create(body)
   const plain = reminder.toObject() as LeanDoc
+
+  // Schedule notification to fire exactly at reminder time
+  if (plain.reminderDate) {
+    scheduleNotification({
+      id:     String(plain._id),
+      type:   'reminder',
+      fireAt: new Date(plain.reminderDate as string),
+    }).catch(err => console.error('[posthook] schedule error:', err))
+  }
+
   return NextResponse.json({ ...plain, _id: String(plain._id), type: 'reminder' }, { status: 201 })
 }
