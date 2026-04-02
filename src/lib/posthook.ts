@@ -1,53 +1,59 @@
-const POSTHOOK_API_KEY = process.env.POSTHOOK_API_KEY
-const BASE_URL = 'https://laix.vercel.app'
-const POSTHOOK_API = 'https://api.posthook.io/v1/hooks'
+// Support both POSTHOOK_API_KEY and POSTHOOK_API env var names
+const POSTHOOK_API_KEY = process.env.POSTHOOK_API_KEY ?? process.env.POSTHOOK_API
+const POSTHOOK_ENDPOINT = 'https://api.posthook.io/v1/hooks'
 
 export type SchedulableType = 'event' | 'reminder' | 'task'
 
 interface ScheduleOptions {
   id: string
   type: SchedulableType
-  fireAt: Date          // exact UTC time to trigger the webhook
-  minutesBefore?: number // optional offset — fire N minutes before fireAt
+  fireAt: Date
+  minutesBefore?: number
 }
 
-/**
- * Register a PostHook job. PostHook will POST to /api/posthook_listener
- * at the scheduled time with { type, id } in the payload.
- */
 export async function scheduleNotification({ id, type, fireAt, minutesBefore = 0 }: ScheduleOptions) {
+  console.log(`[posthook] scheduleNotification called — ${type}:${id} fireAt=${fireAt.toISOString()} minutesBefore=${minutesBefore}`)
+
   if (!POSTHOOK_API_KEY) {
-    console.warn('[posthook] POSTHOOK_API_KEY not set — skipping schedule')
+    console.error('[posthook] ❌ Neither POSTHOOK_API_KEY nor POSTHOOK_API env var is set — skipping')
     return null
   }
 
   const triggerTime = new Date(fireAt.getTime() - minutesBefore * 60 * 1000)
 
-  // Don't schedule in the past
   if (triggerTime <= new Date()) {
-    console.warn(`[posthook] Trigger time is in the past for ${type}:${id} — skipping`)
+    console.warn(`[posthook] ⏭ Trigger time ${triggerTime.toISOString()} is in the past for ${type}:${id} — skipping`)
     return null
   }
 
-  const res = await fetch(POSTHOOK_API, {
+  const payload = {
+    path: '/api/posthook_listener',
+    postAt: triggerTime.toISOString(),
+    data: { type, id },
+  }
+  console.log('[posthook] Sending to PostHook:', JSON.stringify(payload))
+
+  const res = await fetch(POSTHOOK_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-API-Key': POSTHOOK_API_KEY,
     },
-    body: JSON.stringify({
-      path: `${BASE_URL}/api/posthook_listener`,
-      postAt: triggerTime.toISOString(),
-      data: { type, id },
-    }),
+    body: JSON.stringify(payload),
   })
 
+  const responseText = await res.text()
   if (!res.ok) {
-    console.error(`[posthook] Failed to schedule ${type}:${id} —`, await res.text())
+    console.error(`[posthook] ❌ PostHook API error (${res.status}) for ${type}:${id} — ${responseText}`)
     return null
   }
 
-  const json = await res.json()
-  console.log(`[posthook] Scheduled ${type}:${id} at ${triggerTime.toISOString()} — hook id: ${json.id ?? json.hookId}`)
-  return json
+  try {
+    const json = JSON.parse(responseText)
+    console.log(`[posthook] ✅ Scheduled ${type}:${id} at ${triggerTime.toISOString()} — response: ${JSON.stringify(json)}`)
+    return json
+  } catch {
+    console.log(`[posthook] ✅ Scheduled ${type}:${id} — raw response: ${responseText}`)
+    return responseText
+  }
 }

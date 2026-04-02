@@ -130,10 +130,11 @@ export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaul
                   <button
                     key={id}
                     onClick={() => setTab(id)}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150',
-                      tab === id ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'
-                    )}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150"
+                    style={tab === id
+                      ? { background: 'var(--accent-dim)', color: 'var(--accent)' }
+                      : { color: 'var(--text-3)' }
+                    }
                   >
                     <Icon size={14} />
                     {label}

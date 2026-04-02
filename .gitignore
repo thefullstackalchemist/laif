@@ -45,3 +45,5 @@ next-env.d.ts
 # Source assets (already copied to public/ and android drawables)
 logo.zip
 logo/
+
+laifx-979bb-firebase-adminsdk-fbsvc-4ee3d80eca.json
