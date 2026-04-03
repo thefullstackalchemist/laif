@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
   // Schedule notification to fire exactly at reminder time
   if (plain.reminderDate) {
-    scheduleNotification({
+    await scheduleNotification({
       id:     String(plain._id),
       type:   'reminder',
       fireAt: new Date(plain.reminderDate as string),

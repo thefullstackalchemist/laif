@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
   // Schedule a notification to fire 15 minutes before the event starts
   if (plain.startDate) {
-    scheduleNotification({
+    await scheduleNotification({
       id:            String(plain._id),
       type:          'event',
       fireAt:        new Date(plain.startDate as string),

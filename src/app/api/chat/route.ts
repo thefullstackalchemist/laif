@@ -246,7 +246,7 @@ async function toolAddEvent(args: Record<string, unknown>) {
     color: '#5b8ded',
   })
   if (!doc?._id) throw new Error('DB write failed — no document returned')
-  scheduleNotification({ id: String(doc._id), type: 'event', fireAt: startDate, minutesBefore: 15 })
+  await scheduleNotification({ id: String(doc._id), type: 'event', fireAt: startDate, minutesBefore: 15 })
     .catch(err => console.error('[posthook] event schedule error:', err))
   return { success: true, title, id: String(doc._id) }
 }
@@ -295,7 +295,7 @@ async function toolAddReminder(args: Record<string, unknown>) {
     color: '#fbbf24',
   })
   if (!doc?._id) throw new Error('DB write failed — no document returned')
-  scheduleNotification({ id: String(doc._id), type: 'reminder', fireAt: reminderDate })
+  await scheduleNotification({ id: String(doc._id), type: 'reminder', fireAt: reminderDate })
     .catch(err => console.error('[posthook] reminder schedule error:', err))
   return { success: true, title, id: String(doc._id) }
 }
