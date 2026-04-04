@@ -1,20 +1,23 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns'
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek } from 'date-fns'
 import type { AnyItem } from '@/types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Parse an ISO string to a local Date — use new Date() not parseISO to preserve local timezone */
+function toDate(date: string | Date): Date {
+  return typeof date === 'string' ? new Date(date) : date
+}
+
 export function formatDate(date: string | Date, fmt = 'MMM d, yyyy') {
-  const d = typeof date === 'string' ? parseISO(date) : date
-  return format(d, fmt)
+  return format(toDate(date), fmt)
 }
 
 export function formatTime(date: string | Date) {
-  const d = typeof date === 'string' ? parseISO(date) : date
-  return format(d, 'h:mm a')
+  return format(toDate(date), 'h:mm a')
 }
 
 /** Returns 6-week grid of dates for the given month */
@@ -39,7 +42,7 @@ export function getItemsForDay(items: AnyItem[], day: Date): AnyItem[] {
     const dateStr = getItemDate(item)
     if (!dateStr) return false
     try {
-      return isSameDay(parseISO(dateStr), day)
+      return isSameDay(new Date(dateStr), day)
     } catch {
       return false
     }

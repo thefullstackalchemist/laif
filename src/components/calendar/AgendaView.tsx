@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { parseISO, format, isToday, isTomorrow, isFuture, isPast } from 'date-fns'
+import { format, isToday, isTomorrow, isFuture, isPast } from 'date-fns'
 import { Calendar, Bell, MapPin, AlertCircle, CheckCircle2, Circle } from 'lucide-react'
 import { ITEM_COLORS, ITEM_BG, formatTime } from '@/lib/utils'
 import type { AnyItem, CalendarEvent, Task, Reminder } from '@/types'
@@ -9,11 +9,13 @@ import type { AnyItem, CalendarEvent, Task, Reminder } from '@/types'
 type TaskFilter = 'all' | 'active' | 'done'
 
 function getDateLabel(dateStr: string): string {
-  const d = parseISO(dateStr)
+  const d = new Date(dateStr)
   if (isToday(d)) return 'Today'
   if (isTomorrow(d)) return 'Tomorrow'
   return format(d, 'EEEE, MMMM d')
 }
+
+const TODAY_KEY = format(new Date(), 'yyyy-MM-dd')
 
 function groupByDate(items: AnyItem[]): Map<string, AnyItem[]> {
   const map = new Map<string, AnyItem[]>()
@@ -25,7 +27,10 @@ function groupByDate(items: AnyItem[]): Map<string, AnyItem[]> {
   for (const item of sorted) {
     const dateStr = item.type === 'event' ? item.startDate : item.type === 'task' ? (item.dueDate ?? '') : item.reminderDate
     if (!dateStr) continue
-    const key = format(parseISO(dateStr), 'yyyy-MM-dd')
+    const d = new Date(dateStr)
+    // Overdue incomplete tasks bucket under today so they surface at top
+    const isOverdueTask = item.type === 'task' && (item as Task).status !== 'done' && isPast(d) && !isToday(d)
+    const key = isOverdueTask ? TODAY_KEY : format(d, 'yyyy-MM-dd')
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(item)
   }
@@ -41,10 +46,12 @@ interface AgendaViewProps {
 export default function AgendaView({ items, onItemClick, onUpdateItem }: AgendaViewProps) {
   const [filter, setFilter] = useState<TaskFilter>('all')
 
+  // Events and reminders: hide past. Tasks: always show (overdue ones get a red mark).
   const upcoming = items.filter(item => {
-    const dateStr = item.type === 'event' ? item.startDate : item.type === 'task' ? (item as Task).dueDate ?? '' : (item as Reminder).reminderDate
+    if (item.type === 'task') return true
+    const dateStr = item.type === 'event' ? item.startDate : (item as Reminder).reminderDate
     if (!dateStr) return false
-    const d = parseISO(dateStr)
+    const d = new Date(dateStr)
     return isFuture(d) || isToday(d)
   })
 
@@ -117,6 +124,8 @@ export default function AgendaView({ items, onItemClick, onUpdateItem }: AgendaV
                   const bg    = ITEM_BG[item.type]
                   const isTask = item.type === 'task'
                   const isDone = isTask && (item as Task).status === 'done'
+                  const dueDateStr = isTask ? (item as Task).dueDate : undefined
+                  const isOverdue  = isTask && !isDone && !!dueDateStr && isPast(new Date(dueDateStr)) && !isToday(new Date(dueDateStr))
 
                   return (
                     <motion.div
@@ -124,7 +133,7 @@ export default function AgendaView({ items, onItemClick, onUpdateItem }: AgendaV
                       whileHover={{ x: 2 }}
                       className="w-full text-left flex items-start gap-3 p-3 rounded-xl transition-colors duration-150"
                       style={{
-                        borderLeft: `3px solid ${isDone ? 'var(--border)' : color}`,
+                        borderLeft: `3px solid ${isDone ? 'var(--border)' : isOverdue ? '#ef4444' : color}`,
                         opacity: isDone ? 0.55 : 1,
                         cursor: 'default',
                       }}
@@ -181,6 +190,11 @@ export default function AgendaView({ items, onItemClick, onUpdateItem }: AgendaV
                           {isTask && (
                             <span className="text-xs px-1.5 py-0.5 rounded-md" style={{ background: bg, color }}>
                               {(item as Task).priority}
+                            </span>
+                          )}
+                          {isOverdue && (
+                            <span className="text-xs px-1.5 py-0.5 rounded-md font-medium" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
+                              overdue
                             </span>
                           )}
                           {item.type === 'reminder' && (

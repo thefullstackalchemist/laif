@@ -1,9 +1,11 @@
 import { connectDB } from '@/lib/mongodb'
+import { buildSystemPrompt } from '@/lib/agentPrompt'
 import EventModel    from '@/lib/models/Event'
 import TaskModel     from '@/lib/models/Task'
 import ReminderModel from '@/lib/models/Reminder'
 import NoteModel     from '@/lib/models/Note'
 import MemoryModel   from '@/lib/models/Memory'
+import ContactModel  from '@/lib/models/Contact'
 import { scheduleNotification } from '@/lib/posthook'
 
 // ─── Stream chunk types ────────────────────────────────────────────────────
@@ -13,6 +15,7 @@ export type StreamChunk =
   | { t: 'd'; text: string }
   | { t: 'refresh' }
   | { t: 'err'; text: string }
+  | { t: 'contact_ref'; id: string; name: string; role?: string }
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 const MODEL = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free'
@@ -283,6 +286,25 @@ async function toolAddTask(args: Record<string, unknown>) {
   return { success: true, title, id: String(doc._id) }
 }
 
+async function toolAddMemory(args: Record<string, unknown>) {
+  const title = sanitizeStr(args.title, 300)
+  if (!title) throw new Error('title is required')
+  const VALID_TYPES = ['book', 'movie', 'song', 'contact', 'shopping', 'task', 'place', 'quote', 'link', 'general']
+  const type = sanitizeEnum(args.type, VALID_TYPES as unknown as string[], 'general')
+  await connectDB()
+  const doc = await MemoryModel.create({
+    type,
+    title,
+    description: sanitizeStr(args.description, 1000) || undefined,
+    status:      sanitizeStr(args.status, 100)      || undefined,
+    priority:    sanitizeEnum(args.priority, ['low', 'medium', 'high'], 'medium'),
+    tags:        Array.isArray(args.tags) ? (args.tags as unknown[]).map(t => sanitizeStr(t, 50)).filter(Boolean) : [],
+    attributes:  args.attributes && typeof args.attributes === 'object' ? args.attributes : {},
+  })
+  if (!doc?._id) throw new Error('DB write failed — no document returned')
+  return { success: true, title, type, id: String(doc._id) }
+}
+
 async function toolAddReminder(args: Record<string, unknown>) {
   const title = sanitizeStr(args.title, 300)
   if (!title) throw new Error('title is required')
@@ -298,6 +320,37 @@ async function toolAddReminder(args: Record<string, unknown>) {
   await scheduleNotification({ id: String(doc._id), type: 'reminder', fireAt: reminderDate })
     .catch(err => console.error('[posthook] reminder schedule error:', err))
   return { success: true, title, id: String(doc._id) }
+}
+
+// ─── Tool: lookup_contact ─────────────────────────────────────────────────
+// Returns only id + name + role + notes — never phone / email / address
+
+async function toolLookupContact(args: Record<string, unknown>) {
+  const query = sanitizeStr(args.query, 200).toLowerCase()
+  await connectDB()
+
+  const all = await ContactModel.find({})
+    .select('name role notes')
+    .sort({ name: 1 })
+    .lean() as unknown as Array<{ _id: unknown; name: string; role?: string; notes?: string }>
+
+  const matches = query
+    ? all.filter(c =>
+        c.name.toLowerCase().includes(query) ||
+        (c.role  ?? '').toLowerCase().includes(query) ||
+        (c.notes ?? '').toLowerCase().includes(query)
+      )
+    : all
+
+  return {
+    matches: matches.map(c => ({
+      id:    String(c._id),
+      name:  c.name,
+      role:  c.role  ?? '',
+      notes: c.notes ?? '',
+    })),
+    total: matches.length,
+  }
 }
 
 // ─── Tool dispatcher ───────────────────────────────────────────────────────
@@ -318,6 +371,8 @@ async function executeTool(name: string, args: Record<string, unknown>, emit: Em
     : name === 'add_task'          ? `Adding task: "${args.title}"...`
     : name === 'add_reminder'      ? `Setting reminder: "${args.title}"...`
     : name === 'update_task'       ? `Updating task: "${args.title}"...`
+    : name === 'add_memory'        ? `Saving to memory: "${args.title}"...`
+    : name === 'lookup_contact'    ? `Looking up contact: "${args.query}"...`
     : `Running ${name}...`
 
   emit({ t: 's', icon: 'search', text: stepText })
@@ -374,6 +429,23 @@ async function executeTool(name: string, args: Record<string, unknown>, emit: Em
         emit({ t: 's', icon: 'warn', text: r.error ?? 'Task not found' })
       }
 
+    } else if (name === 'add_memory') {
+      result = await toolAddMemory(args)
+      emit({ t: 's', icon: 'done', text: `Remembered: "${args.title}"` })
+      emit({ t: 'refresh' })
+
+    } else if (name === 'lookup_contact') {
+      const r = await toolLookupContact(args)
+      result = r
+      if (r.total === 0) {
+        emit({ t: 's', icon: 'warn', text: `No contacts found for "${args.query}"` })
+      } else {
+        emit({ t: 's', icon: 'found', text: `Found ${r.total} contact${r.total > 1 ? 's' : ''}` })
+        for (const c of r.matches) {
+          emit({ t: 'contact_ref', id: c.id, name: c.name, role: c.role || undefined })
+        }
+      }
+
     } else {
       return { error: `Unknown tool: ${name}` }
     }
@@ -427,71 +499,7 @@ function parseCalls(text: string): { calls: ParsedCall[]; parseErrors: number } 
   return { calls, parseErrors }
 }
 
-// ─── System prompt ─────────────────────────────────────────────────────────
-
-const SYSTEM_PROMPT = `You are Laif, a personal productivity assistant embedded in a life-management app.
-Current date/time (user's local time): {{LOCAL_DATE}}
-User's timezone: {{TIMEZONE}}
-Use this timezone when interpreting relative terms like "today", "tomorrow", "this afternoon", and when constructing ISO dates for tool calls.
-
-## YOUR DATA ACCESS
-
-You have ZERO knowledge of the user's schedule, tasks, notes, or memories unless you call fetch_data.
-RULE: Whenever the user asks anything about their schedule, plans, tasks, to-dos, reminders, notes, or memories — you MUST call fetch_data BEFORE responding. Never say "I don't have access" — you do, via the tool.
-
-## TOOLS
-
-Call tools using EXACTLY this format (no text before or after the tags on the same line):
-<tool_call>
-{"name":"TOOL_NAME","args":{...}}
-</tool_call>
-
-### fetch_data
-Fetch any combination of the user's data.
-args:
-  "what": array — one or more of: "events", "tasks", "reminders", "notes", "memories"  (use ["events","tasks","reminders"] for schedule questions)
-  "when": string (optional) — "today", "tomorrow", "yesterday", or "YYYY-MM-DD"  (omit for all-time)
-  "time_from": ISO datetime (optional) — narrow to a time window start
-  "time_to":   ISO datetime (optional) — narrow to a time window end
-
-Examples:
-  • "How's my schedule today?"       → fetch_data {what:["events","tasks","reminders"], when:"today"}
-  • "What do I need to buy?"         → fetch_data {what:["memories"]}  (memories include shopping lists)
-  • "What notes do I have?"          → fetch_data {what:["notes"]}
-  • "Show me my books to read"       → fetch_data {what:["memories"]}
-  • "What's on tomorrow afternoon?"  → fetch_data {what:["events","reminders"], when:"tomorrow"}
-
-### check_availability
-Check if a time slot is free before adding an event.
-args: {"start":"ISO datetime","end":"ISO datetime"}
-
-### add_event
-args: {"title":"str","startDate":"ISO","endDate":"ISO","description":"str (opt)","location":"str (opt)"}
-ALWAYS call check_availability first.
-
-### add_task
-args: {"title":"str","dueDate":"ISO (opt)","priority":"low|medium|high","status":"todo"}
-
-### add_reminder
-args: {"title":"str","reminderDate":"ISO","description":"str (opt)"}
-
-### update_task
-Update an existing task's status or priority. Find by title (fuzzy match).
-args: {"title":"str","status":"todo|in-progress|done","priority":"low|medium|high (opt)"}
-Example: "mark Buy groceries as done" → update_task {"title":"Buy groceries","status":"done"}
-
-## RESPONSE RULES
-1. Always call fetch_data first for any question about the user's data.
-2. Always call check_availability before add_event. If conflict, tell user and ask to confirm.
-3. Before EVERY tool call, write one short friendly sentence explaining what you're about to do. Examples:
-   - "Let me pull up your schedule for today."
-   - "Sure, checking what you have on tomorrow first."
-   - "Let me look at your memories and notes."
-   - "I'll check if that time slot is free before adding it."
-   Then immediately follow with the <tool_call> block.
-4. After all tools return, write a concise friendly response. Format schedule/lists with bullet points.
-5. Never expose raw IDs, internal fields, or MongoDB internals.
-6. Use ISO 8601 dates. Infer year from today if the user gives a partial date.`
+// System prompt is built dynamically per-request via buildSystemPrompt() from @/lib/agentPrompt
 
 // ─── AI call ───────────────────────────────────────────────────────────────
 
@@ -527,9 +535,7 @@ async function runAgentLoop(
   localDate: string,
   timezone: string,
 ): Promise<void> {
-  const system = SYSTEM_PROMPT
-    .replace('{{LOCAL_DATE}}', localDate)
-    .replace('{{TIMEZONE}}', timezone)
+  const system = buildSystemPrompt(localDate, timezone)
   const msgs: { role: string; content: string }[] = [
     { role: 'system', content: system },
     ...incomingMessages,

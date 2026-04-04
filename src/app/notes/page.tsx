@@ -44,13 +44,12 @@ export default function NotesPage() {
         {/* Center — logo */}
         <div className="flex items-center justify-center flex-1">
           <Image
-            src="/logo-white.png"
+            src="/logo_new.png"
             alt="laif"
             width={36}
             height={36}
             unoptimized
             className="object-contain"
-            style={theme === 'light' ? { filter: 'invert(1)' } : undefined}
           />
         </div>
 

@@ -3,7 +3,6 @@ import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
-import Image from 'next/image'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -44,7 +43,7 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
-      style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(139,92,246,0.12) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(6,182,212,0.08) 0%, transparent 60%), #0d0d14' }}
+      style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(35,61,255,0.12) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(6,182,212,0.08) 0%, transparent 60%), #0d0d14' }}
     >
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -54,12 +53,12 @@ export default function LoginPage() {
       >
         {/* Brand */}
         <div className="flex flex-col items-center mb-8">
-          <Image
-            src="/logo-white.png"
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo_new.png"
             alt="laif"
             width={72}
             height={72}
-            unoptimized
             className="mb-3 object-contain"
             style={{ filter: 'drop-shadow(0 0 24px rgba(139,92,246,0.5))' }}
           />

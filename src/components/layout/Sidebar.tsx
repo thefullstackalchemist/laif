@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, CheckSquare, Bell, ChevronLeft, ChevronRight, StickyNote, Plus, LogOut, Brain, Sun, Moon } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, StickyNote, Plus, LogOut, Brain, Sun, Moon, Users, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/contexts/ThemeContext'
 import type { CalView } from '@/components/calendar/CalendarView'
@@ -39,13 +39,12 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
       {/* Brand */}
       <div className={cn('flex items-center pt-5 pb-4', collapsed ? 'justify-center px-3' : 'gap-3 px-4')}>
         <Image
-          src="/logo-white.png"
+          src="/logo_new.png"
           alt="laif"
           width={42}
           height={42}
           unoptimized
           className="flex-shrink-0 object-contain"
-          style={theme === 'light' ? { filter: 'invert(1)' } : undefined}
         />
         <AnimatePresence>
           {!collapsed && (
@@ -79,14 +78,23 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
         <div style={{ height: 1, background: 'var(--border)', margin: '2px 4px 6px' }} />
 
+        {/* Agenda link */}
+        <button
+          onClick={() => onViewChange('agenda')}
+          className={cn('sidebar-item w-full', currentView === 'agenda' && pathname === '/' && 'active', collapsed && 'justify-center px-0')}
+        >
+          <List size={16} className="flex-shrink-0" />
+          {!collapsed && <span>Agenda</span>}
+        </button>
+
         {/* Calendar link */}
-        <Link
-          href="/"
-          className={cn('sidebar-item w-full', pathname === '/' && 'active', collapsed && 'justify-center px-0')}
+        <button
+          onClick={() => onViewChange(currentView === 'agenda' ? 'month' : currentView)}
+          className={cn('sidebar-item w-full', pathname === '/' && currentView !== 'agenda' && 'active', collapsed && 'justify-center px-0')}
         >
           <Calendar size={16} className="flex-shrink-0" />
           {!collapsed && <span>Calendar</span>}
-        </Link>
+        </button>
 
         {/* Notes link */}
         <Link
@@ -104,6 +112,15 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
         >
           <Brain size={16} className="flex-shrink-0" />
           {!collapsed && <span>Memories</span>}
+        </Link>
+
+        {/* Contacts link */}
+        <Link
+          href="/contacts"
+          className={cn('sidebar-item w-full', pathname === '/contacts' && 'active', collapsed && 'justify-center px-0')}
+        >
+          <Users size={16} className="flex-shrink-0" />
+          {!collapsed && <span>Contacts</span>}
         </Link>
       </nav>
 

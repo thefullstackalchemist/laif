@@ -10,7 +10,7 @@ import type { AnyItem } from '@/types'
 export default function HomePage() {
   const { items, loading, refetch, silentRefresh, addItem, updateItem } = useItems()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [view, setView] = useState<CalView>('month')
+  const [view, setView] = useState<CalView>('agenda')
   const [modalOpen, setModalOpen] = useState(false)
   const [dragStart, setDragStart] = useState<string | undefined>()
   const [dragEnd, setDragEnd]   = useState<string | undefined>()

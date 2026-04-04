@@ -13,16 +13,16 @@
     --text-1: #f1f5f9;
     --text-2: #94a3b8;
     --text-3: #4d5566;
-    --accent: #8b5cf6;
-    --accent-light: #a78bfa;
-    --accent-dim: rgba(139, 92, 246, 0.15);
-    --accent-glow: rgba(139, 92, 246, 0.3);
-    --btn-primary-bg: #8b5cf6;
-    --btn-primary-hover: #a78bfa;
+    --accent: #233dff;
+    --accent-light: #4f65ff;
+    --accent-dim: rgba(35, 61, 255, 0.15);
+    --accent-glow: rgba(35, 61, 255, 0.3);
+    --btn-primary-bg: #233dff;
+    --btn-primary-hover: #4f65ff;
 
     /* Calendar-specific */
     --cal-header-bg: rgba(13, 13, 20, 0.85);
-    --cal-today-bg: rgba(139, 92, 246, 0.06);
+    --cal-today-bg: rgba(35, 61, 255, 0.06);
     --cal-row-border: rgba(255, 255, 255, 0.05);
     --cal-row-border-half: rgba(255, 255, 255, 0.025);
     --cal-col-border: rgba(255, 255, 255, 0.05);
@@ -47,11 +47,11 @@
     /* Sidebar */
     --sidebar-border: rgba(255, 255, 255, 0.06);
     --sidebar-item-hover: rgba(255, 255, 255, 0.05);
-    --sidebar-active-bg: rgba(139, 92, 246, 0.15);
-    --sidebar-active-color: #a78bfa;
+    --sidebar-active-bg: rgba(35, 61, 255, 0.15);
+    --sidebar-active-color: #4f65ff;
   }
 
-  /* ── Light theme (orange / Todoist-like) ─────────────────── */
+  /* ── Light theme ─────────────────────────────────────────── */
   [data-theme="light"] {
     --bg: #faf9f7;
     --surface: #ffffff;
@@ -61,23 +61,23 @@
     --text-1: #1f1f1f;
     --text-2: #6b7280;
     --text-3: #9ca3af;
-    --accent: #db4035;
-    --accent-light: #e8601c;
-    --accent-dim: rgba(219, 64, 53, 0.12);
-    --accent-glow: rgba(219, 64, 53, 0.25);
-    --btn-primary-bg: #db4035;
-    --btn-primary-hover: #e8601c;
+    --accent: #233dff;
+    --accent-light: #4f65ff;
+    --accent-dim: rgba(35, 61, 255, 0.12);
+    --accent-glow: rgba(35, 61, 255, 0.25);
+    --btn-primary-bg: #233dff;
+    --btn-primary-hover: #4f65ff;
 
     /* Calendar */
     --cal-header-bg: rgba(250, 249, 247, 0.92);
-    --cal-today-bg: rgba(219, 64, 53, 0.06);
+    --cal-today-bg: rgba(35, 61, 255, 0.06);
     --cal-row-border: rgba(0, 0, 0, 0.06);
     --cal-row-border-half: rgba(0, 0, 0, 0.03);
     --cal-col-border: rgba(0, 0, 0, 0.07);
     --cal-cell-bg: rgba(255, 255, 255, 0.7);
-    --cal-weekend-bg: rgba(249, 245, 245, 0.8);
+    --cal-weekend-bg: rgba(240, 243, 255, 0.8);
     --cal-out-of-month-bg: rgba(240, 240, 240, 0.4);
-    --cal-hover-bg: rgba(219, 64, 53, 0.03);
+    --cal-hover-bg: rgba(35, 61, 255, 0.03);
 
     /* Glass */
     --glass-bg: rgba(255, 255, 255, 0.85);
@@ -95,8 +95,8 @@
     /* Sidebar */
     --sidebar-border: rgba(0, 0, 0, 0.07);
     --sidebar-item-hover: rgba(0, 0, 0, 0.04);
-    --sidebar-active-bg: rgba(219, 64, 53, 0.1);
-    --sidebar-active-color: #db4035;
+    --sidebar-active-bg: rgba(35, 61, 255, 0.1);
+    --sidebar-active-color: #233dff;
   }
 
   * {
@@ -231,7 +231,7 @@
   }
 
   [data-theme="light"] .gradient-text {
-    background: linear-gradient(135deg, #db4035, #e8601c);
+    background: linear-gradient(135deg, #233dff, #06b6d4);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

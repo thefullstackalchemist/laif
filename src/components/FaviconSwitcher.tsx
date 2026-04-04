@@ -8,7 +8,7 @@ export default function FaviconSwitcher() {
   useEffect(() => {
     const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
     if (!favicon) return
-    favicon.href = theme === 'light' ? '/logo-black.png' : '/logo-white.png'
+    favicon.href = '/logo_new.png'
   }, [theme])
 
   return null

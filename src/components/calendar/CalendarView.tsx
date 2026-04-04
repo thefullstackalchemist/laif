@@ -26,7 +26,6 @@ const VIEW_PILLS: { id: CalView; label: string }[] = [
   { id: 'month',  label: 'Month'  },
   { id: 'week',   label: 'Week'   },
   { id: 'day',    label: 'Day'    },
-  { id: 'agenda', label: 'Agenda' },
 ]
 
 export default function CalendarView({ view, items, loading, onItemClick, onNewItem, onViewChange, onUpdateItem }: CalendarViewProps) {

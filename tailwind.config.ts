@@ -16,8 +16,8 @@ const config: Config = {
           hover: "#1f1f35",
         },
         accent: {
-          purple: "#8b5cf6",
-          "purple-light": "#a78bfa",
+          purple: "#233dff",
+          "purple-light": "#4f65ff",
           blue: "#5b8ded",
           cyan: "#06b6d4",
           emerald: "#34d399",
