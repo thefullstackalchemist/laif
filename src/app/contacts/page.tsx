@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Plus, Search, Phone, Mail, Building2, MapPin, Tag, X, Trash2, Copy, Check } from 'lucide-react'
@@ -245,9 +245,9 @@ function ContactCard({ contact, onDelete, onEdit }: {
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Inner component (uses useSearchParams — must be inside Suspense) ──────────
 
-export default function ContactsPage() {
+function ContactsInner() {
   const { refetch: refetchItems } = useItems()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -420,5 +420,15 @@ export default function ContactsPage() {
 
       <FloatingChat onRefreshItems={refetchItems} />
     </div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function ContactsPage() {
+  return (
+    <Suspense>
+      <ContactsInner />
+    </Suspense>
   )
 }
