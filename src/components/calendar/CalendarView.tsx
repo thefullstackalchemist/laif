@@ -20,6 +20,7 @@ interface CalendarViewProps {
   onNewItem?: (start: Date, end: Date) => void
   onViewChange?: (v: CalView) => void
   onUpdateItem?: (type: AnyItem['type'], id: string, data: Partial<AnyItem>) => void
+  onDeleteItem?: (type: AnyItem['type'], id: string) => void
 }
 
 const VIEW_PILLS: { id: CalView; label: string }[] = [
@@ -28,7 +29,7 @@ const VIEW_PILLS: { id: CalView; label: string }[] = [
   { id: 'day',    label: 'Day'    },
 ]
 
-export default function CalendarView({ view, items, loading, onItemClick, onNewItem, onViewChange, onUpdateItem }: CalendarViewProps) {
+export default function CalendarView({ view, items, loading, onItemClick, onNewItem, onViewChange, onUpdateItem, onDeleteItem }: CalendarViewProps) {
   const [current, setCurrent] = useState(new Date())
 
   const goBack = () => {
@@ -133,6 +134,7 @@ export default function CalendarView({ view, items, loading, onItemClick, onNewI
               items={items}
               onItemClick={onItemClick}
               onNewItem={onNewItem}
+              onUpdateItem={onUpdateItem}
             />
           )}
           {view === 'day' && (
@@ -141,10 +143,11 @@ export default function CalendarView({ view, items, loading, onItemClick, onNewI
               items={items}
               onItemClick={onItemClick}
               onNewItem={onNewItem}
+              onUpdateItem={onUpdateItem}
             />
           )}
           {view === 'agenda' && (
-            <AgendaView items={items} onItemClick={onItemClick} onUpdateItem={onUpdateItem} />
+            <AgendaView items={items} onItemClick={onItemClick} onUpdateItem={onUpdateItem} onDeleteItem={onDeleteItem} />
           )}
         </motion.div>
       </div>

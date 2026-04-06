@@ -1,7 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { X, MapPin, Clock, Calendar, Bell, CheckCircle2, Circle, Send, MessageSquare, Pencil, Check } from 'lucide-react'
+import { X, MapPin, Clock, Calendar, Bell, CheckCircle2, Circle, Send, MessageSquare, Pencil, Check, Trash2 } from 'lucide-react'
 import { format, isPast, isToday } from 'date-fns'
 import { ITEM_COLORS, ITEM_BG, formatTime } from '@/lib/utils'
 import type { AnyItem, CalendarEvent, Task, Reminder, Comment } from '@/types'
@@ -16,10 +16,11 @@ interface ItemDetailPanelProps {
   item: AnyItem
   onClose: () => void
   onUpdateItem?: (type: AnyItem['type'], id: string, data: Partial<AnyItem>) => void
+  onDeleteItem?: (type: AnyItem['type'], id: string) => void
   onItemUpdated?: (item: AnyItem) => void  // called after comment added
 }
 
-export default function ItemDetailPanel({ item, onClose, onUpdateItem, onItemUpdated }: ItemDetailPanelProps) {
+export default function ItemDetailPanel({ item, onClose, onUpdateItem, onDeleteItem, onItemUpdated }: ItemDetailPanelProps) {
   const color  = ITEM_COLORS[item.type]
   const bg     = ITEM_BG[item.type]
   const isTask = item.type === 'task'
@@ -30,6 +31,14 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onItemUpd
   const [posting, setPosting]         = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft]   = useState(item.title)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Reset title state whenever the selected item changes
+  useEffect(() => {
+    setTitleDraft(item.title)
+    setEditingTitle(false)
+    setConfirmDelete(false)
+  }, [item._id, item.title])
 
   async function submitComment() {
     const text = draft.trim()
@@ -61,6 +70,12 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onItemUpd
     }
     onUpdateItem(item.type, item._id, { title: trimmed } as Partial<AnyItem>)
     setEditingTitle(false)
+  }
+
+  function handleDelete() {
+    if (!onDeleteItem || !item._id) return
+    onDeleteItem(item.type, item._id)
+    onClose()
   }
 
   function toggleTaskDone() {
@@ -139,9 +154,37 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onItemUpd
             </button>
           )}
         </div>
-        <button onClick={onClose} className="btn-ghost p-1.5 flex-shrink-0">
-          <X size={15} />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {confirmDelete ? (
+            <>
+              <button
+                onClick={handleDelete}
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors"
+                style={{ background: '#ef4444', color: '#fff' }}
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="btn-ghost p-1.5 text-xs"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="btn-ghost p-1.5"
+              title="Delete"
+              style={{ color: 'var(--text-3)' }}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+          <button onClick={onClose} className="btn-ghost p-1.5">
+            <X size={15} />
+          </button>
+        </div>
       </div>
 
       {/* Scrollable body */}

@@ -63,9 +63,10 @@ interface AgendaViewProps {
   items: AnyItem[]
   onItemClick?: (item: AnyItem) => void
   onUpdateItem?: (type: AnyItem['type'], id: string, data: Partial<AnyItem>) => void
+  onDeleteItem?: (type: AnyItem['type'], id: string) => void
 }
 
-export default function AgendaView({ items, onItemClick, onUpdateItem }: AgendaViewProps) {
+export default function AgendaView({ items, onItemClick, onUpdateItem, onDeleteItem }: AgendaViewProps) {
   const [filter, setFilter]         = useState<TaskFilter>('all')
   const [selected, setSelected]     = useState<AnyItem | null>(null)
   const [localItems, setLocalItems] = useState<AnyItem[]>(items)
@@ -298,6 +299,7 @@ export default function AgendaView({ items, onItemClick, onUpdateItem }: AgendaV
               item={selected}
               onClose={() => setSelected(null)}
               onUpdateItem={onUpdateItem}
+              onDeleteItem={onDeleteItem}
               onItemUpdated={handleItemUpdated}
             />
           </div>

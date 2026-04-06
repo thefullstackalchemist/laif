@@ -8,7 +8,7 @@ import { useItems } from '@/hooks/useItems'
 import type { AnyItem } from '@/types'
 
 export default function HomePage() {
-  const { items, loading, refetch, silentRefresh, addItem, updateItem } = useItems()
+  const { items, loading, refetch, silentRefresh, addItem, updateItem, deleteItem } = useItems()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [view, setView] = useState<CalView>('agenda')
   const [modalOpen, setModalOpen] = useState(false)
@@ -56,6 +56,7 @@ export default function HomePage() {
           onNewItem={handleNewItem}
           onViewChange={setView}
           onUpdateItem={updateItem}
+          onDeleteItem={deleteItem}
         />
       </main>
 
