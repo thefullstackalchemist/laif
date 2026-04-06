@@ -80,7 +80,7 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
 
         {/* Agenda link */}
         <button
-          onClick={() => onViewChange('agenda')}
+          onClick={() => { onViewChange('agenda'); if (pathname !== '/') router.push('/') }}
           className={cn('sidebar-item w-full', currentView === 'agenda' && pathname === '/' && 'active', collapsed && 'justify-center px-0')}
         >
           <List size={16} className="flex-shrink-0" />
@@ -89,7 +89,7 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
 
         {/* Calendar link */}
         <button
-          onClick={() => onViewChange(currentView === 'agenda' ? 'month' : currentView)}
+          onClick={() => { onViewChange(currentView === 'agenda' ? 'month' : currentView); if (pathname !== '/') router.push('/') }}
           className={cn('sidebar-item w-full', pathname === '/' && currentView !== 'agenda' && 'active', collapsed && 'justify-center px-0')}
         >
           <Calendar size={16} className="flex-shrink-0" />
@@ -133,9 +133,9 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           >
             <p className="text-xs font-medium tracking-wider mb-2" style={{ color: 'var(--text-3)' }}>OVERVIEW</p>
             {[
-              { label: 'Events',    count: counts.events,    color: '#5b8ded' },
-              { label: 'Tasks',     count: counts.tasks,     color: '#34d399' },
-              { label: 'Reminders', count: counts.reminders, color: '#fbbf24' },
+              { label: 'Events',    count: counts.events,    color: 'var(--color-event)' },
+              { label: 'Tasks',     count: counts.tasks,     color: 'var(--color-task)' },
+              { label: 'Reminders', count: counts.reminders, color: 'var(--color-reminder)' },
             ].map(({ label, count, color }) => (
               <div key={label} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

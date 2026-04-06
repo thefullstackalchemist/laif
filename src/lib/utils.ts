@@ -50,15 +50,15 @@ export function getItemsForDay(items: AnyItem[], day: Date): AnyItem[] {
 }
 
 export const ITEM_COLORS: Record<AnyItem['type'], string> = {
-  event:    '#8B5CF6',   // violet — brand purple family
-  task:     '#2DD4BF',   // teal  — logo accent marks
-  reminder: '#FB923C',   // orange — warm & visible
+  event:    'var(--color-event)',
+  task:     'var(--color-task)',
+  reminder: 'var(--color-reminder)',
 }
 
 export const ITEM_BG: Record<AnyItem['type'], string> = {
-  event:    '#1e1040',
-  task:     '#0d2d2c',
-  reminder: '#2d1806',
+  event:    'var(--bg-event)',
+  task:     'var(--bg-task)',
+  reminder: 'var(--bg-reminder)',
 }
 
 export const NOTE_COLORS = [

@@ -3,6 +3,24 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Item type colors — update per theme ────────────────── */
+  :root, [data-theme="dark"] {
+    --color-event:    #8B5CF6;
+    --color-task:     #2DD4BF;
+    --color-reminder: #FB923C;
+    --bg-event:       #1e1040;
+    --bg-task:        #0d2d2c;
+    --bg-reminder:    #2d1806;
+  }
+  [data-theme="light"] {
+    --color-event:    #6929D4;
+    --color-task:     #0f766e;
+    --color-reminder: #c2410c;
+    --bg-event:       #ede9f8;
+    --bg-task:        #ccfbf1;
+    --bg-reminder:    #ffedd5;
+  }
+
   /* ── Dark theme (default) ────────────────────────────────── */
   :root, [data-theme="dark"] {
     --bg: #0b0b13;
@@ -53,49 +71,49 @@
 
   /* ── Light theme ─────────────────────────────────────────── */
   [data-theme="light"] {
-    --bg: #fafaf9;
-    --surface: #ffffff;
-    --card: #ffffff;
-    --border: #e5e4ef;
-    --border-hover: #c8c7de;
+    --bg: #f2f0f8;
+    --surface: #f8f6fd;
+    --card: #fdfcff;
+    --border: #dbd8ee;
+    --border-hover: #c4c0df;
     --text-1: #1a1830;
     --text-2: #6b6885;
-    --text-3: #a09eb8;
+    --text-3: #9896b0;
     --accent: #6929D4;
     --accent-light: #8B5CF6;
-    --accent-dim: #ede9f8;
+    --accent-dim: #e8e2f9;
     --accent-glow: #6929D430;
     --btn-primary-bg: #6929D4;
     --btn-primary-hover: #7C3AED;
 
     /* Calendar */
-    --cal-header-bg: #fafaf9;
-    --cal-today-bg: #f0ebff;
-    --cal-row-border: #ececf4;
-    --cal-row-border-half: #f4f4f9;
-    --cal-col-border: #ececf4;
-    --cal-cell-bg: #ffffff;
-    --cal-weekend-bg: #f8f7ff;
-    --cal-out-of-month-bg: #f4f4f8;
-    --cal-hover-bg: #f0ebff;
+    --cal-header-bg: #f2f0f8;
+    --cal-today-bg: #e8e2f9;
+    --cal-row-border: #e0ddf2;
+    --cal-row-border-half: #ece9f5;
+    --cal-col-border: #e0ddf2;
+    --cal-cell-bg: #f8f6fd;
+    --cal-weekend-bg: #f4f2fb;
+    --cal-out-of-month-bg: #edeaf5;
+    --cal-hover-bg: #eae6f8;
 
     /* Glass → flat solid */
-    --glass-bg: #ffffff;
-    --glass-card-bg: #ffffff;
-    --glass-border: #e5e4ef;
+    --glass-bg: #f8f6fd;
+    --glass-card-bg: #fdfcff;
+    --glass-border: #dbd8ee;
 
     /* Scrollbar */
-    --scrollbar-thumb: #d4d2e8;
-    --scrollbar-thumb-hover: #b8b5d0;
+    --scrollbar-thumb: #c8c5e0;
+    --scrollbar-thumb-hover: #aaa8c8;
 
     /* Input */
-    --input-bg: #f4f3fa;
-    --input-border: #e0dff0;
+    --input-bg: #eeecf8;
+    --input-border: #d5d2ea;
 
     /* Sidebar */
-    --sidebar-border: #ebe9f5;
-    --sidebar-item-hover: #f4f2fc;
-    --sidebar-active-bg: #ede9f8;
+    --sidebar-border: #dbd8ee;
+    --sidebar-item-hover: #eae7f7;
+    --sidebar-active-bg: #e2dcf8;
     --sidebar-active-color: #6929D4;
   }
 
@@ -200,6 +218,12 @@
   .item-pill {
     @apply flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium truncate cursor-pointer
       transition-colors duration-150 hover:opacity-80 active:scale-95;
+  }
+
+  /* Light mode: events use outline style instead of filled background */
+  [data-theme="light"] .item-pill {
+    background: transparent !important;
+    border: 1.5px solid currentColor;
   }
 
   .sidebar-item {
