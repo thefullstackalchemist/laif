@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { X, MapPin, Clock, Calendar, Bell, CheckCircle2, Circle, Send, MessageSquare } from 'lucide-react'
+import { X, MapPin, Clock, Calendar, Bell, CheckCircle2, Circle, Send, MessageSquare, Pencil, Check } from 'lucide-react'
 import { format, isPast, isToday } from 'date-fns'
 import { ITEM_COLORS, ITEM_BG, formatTime } from '@/lib/utils'
 import type { AnyItem, CalendarEvent, Task, Reminder, Comment } from '@/types'
@@ -25,9 +25,11 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onItemUpd
   const isTask = item.type === 'task'
   const isDone = isTask && (item as Task).status === 'done'
 
-  const [comments, setComments] = useState<Comment[]>((item as any).comments ?? [])
-  const [draft, setDraft]       = useState('')
-  const [posting, setPosting]   = useState(false)
+  const [comments, setComments]       = useState<Comment[]>((item as any).comments ?? [])
+  const [draft, setDraft]             = useState('')
+  const [posting, setPosting]         = useState(false)
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft]   = useState(item.title)
 
   async function submitComment() {
     const text = draft.trim()
@@ -48,6 +50,17 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onItemUpd
     } finally {
       setPosting(false)
     }
+  }
+
+  function saveTitle() {
+    const trimmed = titleDraft.trim()
+    if (!trimmed || trimmed === item.title || !onUpdateItem || !item._id) {
+      setTitleDraft(item.title)
+      setEditingTitle(false)
+      return
+    }
+    onUpdateItem(item.type, item._id, { title: trimmed } as Partial<AnyItem>)
+    setEditingTitle(false)
   }
 
   function toggleTaskDone() {
@@ -88,13 +101,43 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onItemUpd
               </span>
             )}
           </div>
-          <h2 className="text-base font-semibold leading-snug" style={{
-            color: 'var(--text-1)',
-            textDecoration: isDone ? 'line-through' : 'none',
-            opacity: isDone ? 0.6 : 1,
-          }}>
-            {item.title}
-          </h2>
+          {editingTitle ? (
+            <div className="flex items-center gap-1.5 mt-1">
+              <input
+                autoFocus
+                className="input-field text-base font-semibold flex-1 py-1"
+                value={titleDraft}
+                onChange={e => setTitleDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') saveTitle()
+                  if (e.key === 'Escape') { setTitleDraft(item.title); setEditingTitle(false) }
+                }}
+                onBlur={saveTitle}
+              />
+              <button
+                onMouseDown={e => { e.preventDefault(); saveTitle() }}
+                className="btn-ghost p-1.5 flex-shrink-0"
+                style={{ color }}
+              >
+                <Check size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              className="group flex items-start gap-1.5 text-left mt-1 w-full"
+              onClick={() => setEditingTitle(true)}
+              title="Click to edit title"
+            >
+              <h2 className="text-base font-semibold leading-snug flex-1" style={{
+                color: 'var(--text-1)',
+                textDecoration: isDone ? 'line-through' : 'none',
+                opacity: isDone ? 0.6 : 1,
+              }}>
+                {item.title}
+              </h2>
+              <Pencil size={12} className="flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-50 transition-opacity" style={{ color: 'var(--text-2)' }} />
+            </button>
+          )}
         </div>
         <button onClick={onClose} className="btn-ghost p-1.5 flex-shrink-0">
           <X size={15} />
