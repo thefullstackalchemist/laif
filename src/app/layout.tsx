@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import FaviconSwitcher from "@/components/FaviconSwitcher";
+import NotificationCenter from "@/components/NotificationCenter";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <FaviconSwitcher />
           {children}
+          <NotificationCenter />
         </ThemeProvider>
       </body>
     </html>

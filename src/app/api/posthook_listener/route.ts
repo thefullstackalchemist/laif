@@ -4,7 +4,7 @@ import EventModel from '@/lib/models/Event'
 import ReminderModel from '@/lib/models/Reminder'
 import TaskModel from '@/lib/models/Task'
 import DeviceModel from '@/lib/models/Device'
-import { messaging } from '@/lib/firebase-admin'
+import { messaging, rtdb } from '@/lib/firebase-admin'
 
 const SUPPORTED_TYPES = ['event', 'reminder', 'task'] as const
 type ItemType = typeof SUPPORTED_TYPES[number]
@@ -86,6 +86,22 @@ export async function POST(req: Request) {
 
   const notification = NOTIFICATION_COPY[type as ItemType](title)
   await sendPushToAllDevices(notification, { type, id: String(id) })
+
+  // Write to Firebase RTDB so the web app can pick it up via polling
+  try {
+    const ref = rtdb().ref('web-notifications').push()
+    await ref.set({
+      title:     notification.title,
+      body:      notification.body,
+      type,
+      itemId:    String(id),
+      createdAt: Date.now(),
+      read:      false,
+    })
+    console.log(`[posthook_listener] RTDB notification written: ${ref.key}`)
+  } catch (err) {
+    console.warn('[posthook_listener] RTDB write failed (non-fatal):', err)
+  }
 
   if (type === 'reminder') {
     await ReminderModel.findByIdAndUpdate(id, { notified: true })
