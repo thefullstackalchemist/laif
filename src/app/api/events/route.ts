@@ -17,13 +17,14 @@ export async function POST(req: Request) {
   const event = await EventModel.create(body)
   const plain = event.toObject() as LeanDoc
 
-  // Schedule a notification to fire 15 minutes before the event starts
-  if (plain.startDate) {
+  // Schedule a notification using the notifyBefore value from the form (null = no notification)
+  const minutesBefore = typeof body.notifyBefore === 'number' ? body.notifyBefore : null
+  if (plain.startDate && minutesBefore !== null) {
     await scheduleNotification({
       id:            String(plain._id),
       type:          'event',
       fireAt:        new Date(plain.startDate as string),
-      minutesBefore: 15,
+      minutesBefore,
     }).catch(err => console.error('[posthook] schedule error:', err))
   }
 

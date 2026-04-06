@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Calendar, CheckSquare, Bell, MapPin } from 'lucide-react'
+import { X, Calendar, CheckSquare, Bell, MapPin, BellRing } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { AnyItem } from '@/types'
 
@@ -49,6 +49,7 @@ export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaul
   const [eventStart, setEventStart] = useState(defaultStart ?? defaultDate ?? now())
   const [eventEnd, setEventEnd] = useState(defaultEnd ?? defaultDate ?? hourLater())
   const [eventLocation, setEventLocation] = useState('')
+  const [eventNotifyBefore, setEventNotifyBefore] = useState<number | null>(15)
 
   // Task fields
   const [taskTitle, setTaskTitle] = useState('')
@@ -71,7 +72,7 @@ export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaul
   }, [open, defaultStart, defaultEnd])
 
   function reset() {
-    setEventTitle(''); setEventDesc(''); setEventStart(now()); setEventEnd(hourLater()); setEventLocation('')
+    setEventTitle(''); setEventDesc(''); setEventStart(now()); setEventEnd(hourLater()); setEventLocation(''); setEventNotifyBefore(15)
     setTaskTitle(''); setTaskDesc(''); setTaskDue(now()); setTaskPriority('medium'); setTaskStatus('todo')
     setReminderTitle(''); setReminderDesc(''); setReminderDate(now())
   }
@@ -81,7 +82,14 @@ export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaul
     try {
       if (tab === 'event') {
         if (!eventTitle.trim()) return
-        await onAdd('event', { title: eventTitle.trim(), description: eventDesc, startDate: new Date(eventStart).toISOString(), endDate: new Date(eventEnd).toISOString(), location: eventLocation || undefined })
+        await onAdd('event', {
+          title: eventTitle.trim(),
+          description: eventDesc,
+          startDate: new Date(eventStart).toISOString(),
+          endDate: new Date(eventEnd).toISOString(),
+          location: eventLocation || undefined,
+          notifyBefore: eventNotifyBefore ?? undefined,
+        })
       } else if (tab === 'task') {
         if (!taskTitle.trim()) return
         await onAdd('task', { title: taskTitle.trim(), description: taskDesc, dueDate: taskDue ? new Date(taskDue).toISOString() : undefined, priority: taskPriority, status: taskStatus })
@@ -113,9 +121,9 @@ export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaul
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 pointer-events-none"
           >
-            <div className="glass-card w-full max-w-md pointer-events-auto shadow-float overflow-hidden">
+            <div className="glass-card w-full max-w-md pointer-events-auto shadow-float overflow-hidden max-h-[88vh] flex flex-col">
               {/* Header */}
               <div className="flex items-center justify-between p-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
                 <h3 className="text-base font-semibold text-slate-100">Add item</h3>
@@ -143,7 +151,7 @@ export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaul
               </div>
 
               {/* Form */}
-              <div className="p-5 space-y-3">
+              <div className="p-5 space-y-3 overflow-y-auto flex-1">
                 {tab === 'event' && (
                   <>
                     <div>
@@ -160,9 +168,25 @@ export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaul
                         <input type="datetime-local" className="input-field" value={eventEnd} onChange={e => setEventEnd(e.target.value)} />
                       </div>
                     </div>
-                    <div>
-                      <label className="label">Location</label>
-                      <input className="input-field" placeholder="Optional" value={eventLocation} onChange={e => setEventLocation(e.target.value)} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="label">Location</label>
+                        <input className="input-field" placeholder="Optional" value={eventLocation} onChange={e => setEventLocation(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="label flex items-center gap-1"><BellRing size={11} /> Notify before</label>
+                        <select
+                          className="input-field"
+                          value={eventNotifyBefore ?? ''}
+                          onChange={e => setEventNotifyBefore(e.target.value ? Number(e.target.value) : null)}
+                        >
+                          <option value="">None</option>
+                          <option value="5">5 min</option>
+                          <option value="10">10 min</option>
+                          <option value="15">15 min</option>
+                          <option value="30">30 min</option>
+                        </select>
+                      </div>
                     </div>
                     <div>
                       <label className="label">Description</label>
