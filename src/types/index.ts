@@ -1,4 +1,10 @@
 export type ItemType = 'event' | 'task' | 'reminder'
+
+export interface Comment {
+  _id?: string
+  text: string
+  createdAt?: string
+}
 export type TaskPriority = 'low' | 'medium' | 'high'
 export type TaskStatus = 'todo' | 'in-progress' | 'done'
 
@@ -12,6 +18,7 @@ export interface CalendarEvent {
   allDay?: boolean
   location?: string
   color: string
+  comments?: Comment[]
   createdAt?: string
 }
 
@@ -24,6 +31,7 @@ export interface Task {
   priority: TaskPriority
   status: TaskStatus
   color: string
+  comments?: Comment[]
   createdAt?: string
 }
 
@@ -35,6 +43,7 @@ export interface Reminder {
   reminderDate: string
   notified?: boolean
   color: string
+  comments?: Comment[]
   createdAt?: string
 }
 
