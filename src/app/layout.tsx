@@ -11,8 +11,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Laif — Your intelligent life manager",
+  title: "laif — Your personal assistant",
   description: "Manage events, tasks, reminders and notes — all in one premium workspace.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'laif',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

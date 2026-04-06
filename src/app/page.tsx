@@ -12,6 +12,7 @@ import RSSFeedWidget from '@/components/dashboard/RSSFeedWidget'
 import PomodoroWidget from '@/components/dashboard/PomodoroWidget'
 import TodayTasksWidget from '@/components/dashboard/TodayTasksWidget'
 import AIBriefWidget from '@/components/dashboard/AIBriefWidget'
+import PWAInstallButton from '@/components/PWAInstallButton'
 import { useItems } from '@/hooks/useItems'
 import { isToday as dfIsToday, isPast as dfIsPast } from 'date-fns'
 import type { AnyItem, Task, CalendarEvent } from '@/types'
@@ -93,6 +94,9 @@ export default function DashboardPage() {
             <div className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin ml-1"
               style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
           )}
+          <div className="ml-auto">
+            <PWAInstallButton />
+          </div>
         </div>
 
         {/* Bento grid — 4 columns, 2 rows */}
