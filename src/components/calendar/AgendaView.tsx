@@ -187,14 +187,9 @@ export default function AgendaView({ items, onItemClick, onUpdateItem, onDeleteI
                     return (
                       <motion.div
                         key={item._id}
-                        whileHover={{ x: 1 }}
                         onClick={() => setSelected(isSelected ? null : item)}
-                        className="flex items-stretch rounded-xl cursor-pointer overflow-hidden transition-colors duration-150"
-                        style={{
-                          background: isSelected ? 'var(--accent-dim)' : 'var(--card)',
-                          border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                          opacity: isDone ? 0.5 : 1,
-                        }}
+                        className={`agenda-item flex items-stretch rounded-xl cursor-pointer overflow-hidden${isSelected ? ' selected' : ''}`}
+                        style={{ opacity: isDone ? 0.5 : 1 }}
                       >
                         {/* Left color bar */}
                         <div className="w-1 flex-shrink-0" style={{ background: isDone ? 'var(--border)' : isOverdue ? '#ef4444' : color }} />

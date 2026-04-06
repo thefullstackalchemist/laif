@@ -226,6 +226,20 @@
     border: 1.5px solid currentColor;
   }
 
+  .agenda-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .agenda-item:hover {
+    background: var(--cal-hover-bg);
+    border-color: var(--border-hover);
+  }
+  .agenda-item.selected {
+    background: var(--accent-dim) !important;
+    border-color: var(--accent) !important;
+  }
+
   .sidebar-item {
     @apply flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors duration-150 cursor-pointer;
     color: var(--text-2);
