@@ -10,32 +10,50 @@ export interface WebNotification {
   createdAt: number
 }
 
-export async function GET() {
-  try {
-    const ref = rtdb().ref('web-notifications')
-    const snap = await ref.orderByChild('read').equalTo(false).once('value')
+/**
+ * GET /api/notifications?since=<ms timestamp>
+ *
+ * Returns all notifications created AFTER `since`.
+ * Each client tracks its own `since` in localStorage — no global
+ * read-state, so multiple browser sessions don't steal from each other.
+ *
+ * Old entries (>24 h) are cleaned up to keep RTDB tidy.
+ */
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const since = Number(searchParams.get('since') ?? 0)
 
-    if (!snap.exists()) return NextResponse.json({ notifications: [] })
+  try {
+    const ref  = rtdb().ref('web-notifications')
+    const snap = await ref.orderByChild('createdAt').startAfter(since).once('value')
 
     const notifications: WebNotification[] = []
-    snap.forEach(child => {
-      const v = child.val()
-      notifications.push({
-        key:       child.key!,
-        title:     v.title     ?? '',
-        body:      v.body      ?? '',
-        type:      v.type      ?? '',
-        itemId:    v.itemId    ?? '',
-        createdAt: v.createdAt ?? 0,
+    if (snap.exists()) {
+      snap.forEach(child => {
+        const v = child.val()
+        notifications.push({
+          key:       child.key!,
+          title:     v.title     ?? '',
+          body:      v.body      ?? '',
+          type:      v.type      ?? '',
+          itemId:    v.itemId    ?? '',
+          createdAt: v.createdAt ?? 0,
+        })
       })
-    })
-
-    // Mark all as read in one update
-    if (notifications.length) {
-      const updates: Record<string, boolean> = {}
-      notifications.forEach(n => { updates[`${n.key}/read`] = true })
-      await ref.update(updates)
     }
+
+    // Prune entries older than 24 h (fire-and-forget)
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+    rtdb().ref('web-notifications')
+      .orderByChild('createdAt').endBefore(cutoff)
+      .once('value')
+      .then(old => {
+        if (!old.exists()) return
+        const del: Record<string, null> = {}
+        old.forEach(c => { del[c.key!] = null })
+        rtdb().ref('web-notifications').update(del)
+      })
+      .catch(() => {})
 
     return NextResponse.json({ notifications })
   } catch (err) {
