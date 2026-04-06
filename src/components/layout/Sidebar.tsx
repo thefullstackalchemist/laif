@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, ChevronLeft, ChevronRight, StickyNote, Plus, LogOut, Brain, Sun, Moon, Users, List } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, StickyNote, Plus, LogOut, Brain, Sun, Moon, Users, List, LayoutDashboard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/contexts/ThemeContext'
 import type { CalView } from '@/components/calendar/CalendarView'
@@ -78,10 +78,19 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
         <div style={{ height: 1, background: 'var(--border)', margin: '2px 4px 6px' }} />
 
+        {/* Home / Dashboard link */}
+        <Link
+          href="/"
+          className={cn('sidebar-item w-full', pathname === '/' && 'active', collapsed && 'justify-center px-0')}
+        >
+          <LayoutDashboard size={16} className="flex-shrink-0" />
+          {!collapsed && <span>Home</span>}
+        </Link>
+
         {/* Agenda link */}
         <button
-          onClick={() => { onViewChange('agenda'); if (pathname !== '/') router.push('/') }}
-          className={cn('sidebar-item w-full', currentView === 'agenda' && pathname === '/' && 'active', collapsed && 'justify-center px-0')}
+          onClick={() => { onViewChange('agenda'); router.push('/calendar') }}
+          className={cn('sidebar-item w-full', pathname === '/calendar' && currentView === 'agenda' && 'active', collapsed && 'justify-center px-0')}
         >
           <List size={16} className="flex-shrink-0" />
           {!collapsed && <span>Agenda</span>}
@@ -89,8 +98,8 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
 
         {/* Calendar link */}
         <button
-          onClick={() => { onViewChange(currentView === 'agenda' ? 'month' : currentView); if (pathname !== '/') router.push('/') }}
-          className={cn('sidebar-item w-full', pathname === '/' && currentView !== 'agenda' && 'active', collapsed && 'justify-center px-0')}
+          onClick={() => { onViewChange(currentView === 'agenda' ? 'month' : currentView); router.push('/calendar') }}
+          className={cn('sidebar-item w-full', pathname === '/calendar' && currentView !== 'agenda' && 'active', collapsed && 'justify-center px-0')}
         >
           <Calendar size={16} className="flex-shrink-0" />
           {!collapsed && <span>Calendar</span>}
