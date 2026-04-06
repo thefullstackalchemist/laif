@@ -17,7 +17,8 @@ const ICONS = { event: Calendar, task: CheckSquare, reminder: Bell }
 interface ItemDrag {
   mode: 'move' | 'resize'
   item: AnyItem
-  colIndex: number
+  colIndex: number        // source column
+  curColIndex: number     // live column (changes while dragging across days)
   startMinOrig: number
   endMinOrig: number
   anchorPageY: number
@@ -86,7 +87,16 @@ export default function WeekView({ date, items, onItemClick, onNewItem, onUpdate
       const dur = d.endMinOrig - d.startMinOrig
       let newStart = Math.round((d.startMinOrig + rawDeltaMin) / SNAP_MIN) * SNAP_MIN
       newStart = Math.max(0, Math.min(newStart, 24 * 60 - dur))
-      updated = { ...d, curStartMin: newStart, curEndMin: newStart + dur }
+      // compute target column from x position
+      let newCol = d.curColIndex
+      if (gridRef.current) {
+        const rect = gridRef.current.getBoundingClientRect()
+        const GUTTER = 56 // w-14
+        const colWidth = (rect.width - GUTTER) / 7
+        const x = e.clientX - rect.left - GUTTER
+        newCol = Math.max(0, Math.min(6, Math.floor(x / colWidth)))
+      }
+      updated = { ...d, curStartMin: newStart, curEndMin: newStart + dur, curColIndex: newCol }
     } else {
       let newEnd = Math.round((d.endMinOrig + rawDeltaMin) / SNAP_MIN) * SNAP_MIN
       newEnd = Math.max(d.startMinOrig + SNAP_MIN, Math.min(newEnd, 24 * 60))
@@ -111,7 +121,7 @@ export default function WeekView({ date, items, onItemClick, onNewItem, onUpdate
     // ── Item move / resize ──────────────────────────────────
     const id = itemDragRef.current
     if (id && didItemDrag.current && onUpdateItem && id.item._id) {
-      const day = days[id.colIndex]
+      const day = days[id.curColIndex]
       const toISO = (min: number) => {
         const d = new Date(day); d.setHours(Math.floor(min / 60), min % 60, 0, 0); return d.toISOString()
       }
@@ -160,7 +170,7 @@ export default function WeekView({ date, items, onItemClick, onNewItem, onUpdate
     const endMin   = getItemEndMin(item)
     if (startMin < 0) return
     didItemDrag.current = false
-    const drag: ItemDrag = { mode: 'move', item, colIndex, startMinOrig: startMin, endMinOrig: endMin, anchorPageY: e.clientY, curStartMin: startMin, curEndMin: endMin }
+    const drag: ItemDrag = { mode: 'move', item, colIndex, curColIndex: colIndex, startMinOrig: startMin, endMinOrig: endMin, anchorPageY: e.clientY, curStartMin: startMin, curEndMin: endMin }
     itemDragRef.current = drag
     setItemDragDisplay(drag)
   }
@@ -172,7 +182,7 @@ export default function WeekView({ date, items, onItemClick, onNewItem, onUpdate
     const endMin   = getItemEndMin(item)
     if (startMin < 0) return
     didItemDrag.current = false
-    const drag: ItemDrag = { mode: 'resize', item, colIndex, startMinOrig: startMin, endMinOrig: endMin, anchorPageY: e.clientY, curStartMin: startMin, curEndMin: endMin }
+    const drag: ItemDrag = { mode: 'resize', item, colIndex, curColIndex: colIndex, startMinOrig: startMin, endMinOrig: endMin, anchorPageY: e.clientY, curStartMin: startMin, curEndMin: endMin }
     itemDragRef.current = drag
     setItemDragDisplay(drag)
   }
@@ -274,8 +284,12 @@ export default function WeekView({ date, items, onItemClick, onNewItem, onUpdate
                   if (origStart < 0) return null
 
                   const isThisDragging = draggingId === item._id
-                  const startMin = isThisDragging ? itemDragDisplay!.curStartMin : origStart
-                  const endMin   = isThisDragging ? itemDragDisplay!.curEndMin   : origEnd
+                  const isMoveDrag   = isThisDragging && itemDragDisplay?.mode === 'move'
+                  const isResizeDrag = isThisDragging && itemDragDisplay?.mode === 'resize'
+
+                  // Move: show ghost at original spot; Resize: stretch in place
+                  const startMin = origStart
+                  const endMin   = isResizeDrag ? itemDragDisplay!.curEndMin : origEnd
 
                   const dur    = endMin - startMin
                   const height = Math.max(dur * PX_PER_MIN - 2, 22)
@@ -299,9 +313,11 @@ export default function WeekView({ date, items, onItemClick, onNewItem, onUpdate
                         background: `${color}22`,
                         borderLeft: `3px solid ${color}`,
                         padding: short ? '2px 5px' : '4px 6px',
-                        zIndex: isThisDragging ? 50 : 10,
-                        cursor: isThisDragging ? 'grabbing' : 'grab',
-                        boxShadow: isThisDragging ? `0 4px 16px rgba(0,0,0,0.25)` : `0 1px 4px rgba(0,0,0,0.12)`,
+                        zIndex: isResizeDrag ? 50 : 10,
+                        opacity: isMoveDrag ? 0.25 : 1,
+                        cursor: 'grab',
+                        pointerEvents: isThisDragging ? 'none' : 'auto',
+                        boxShadow: isResizeDrag ? `0 4px 16px rgba(0,0,0,0.25)` : `0 1px 4px rgba(0,0,0,0.12)`,
                         transition: isThisDragging ? 'none' : 'box-shadow 0.15s',
                         userSelect: 'none',
                       }}
@@ -362,6 +378,52 @@ export default function WeekView({ date, items, onItemClick, onNewItem, onUpdate
               </div>
             )
           })}
+
+          {/* Cross-column move overlay — absolutely positioned within the full grid */}
+          {itemDragDisplay?.mode === 'move' && (() => {
+            const GUTTER = 56
+            const colW = gridRef.current ? (gridRef.current.clientWidth - GUTTER) / 7 : 0
+            const d = itemDragDisplay
+            const color = ITEM_COLORS[d.item.type]
+            const Icon  = ICONS[d.item.type]
+            const dur   = d.curEndMin - d.curStartMin
+            const h     = Math.max(dur * PX_PER_MIN - 2, 22)
+            const short = h < 38
+            const isEvent = d.item.type === 'event'
+            return (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: minutesToPx(d.curStartMin) + 1,
+                  left: GUTTER + d.curColIndex * colW + 2,
+                  width: colW - 4,
+                  height: h,
+                  background: `${color}22`,
+                  borderLeft: `3px solid ${color}`,
+                  borderRadius: 8,
+                  padding: short ? '2px 5px' : '4px 6px',
+                  zIndex: 50,
+                  cursor: 'grabbing',
+                  boxShadow: `0 4px 20px rgba(0,0,0,0.3)`,
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
+                  <Icon size={9} style={{ color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {d.item.title}
+                  </span>
+                </div>
+                {!short && (
+                  <p style={{ fontSize: 12, marginTop: 2, color, opacity: 0.7 }}>
+                    {minToTimeStr(d.curStartMin)}{isEvent ? ` – ${minToTimeStr(d.curEndMin)}` : ''}
+                  </p>
+                )}
+              </div>
+            )
+          })()}
         </div>
       </div>
 
@@ -372,7 +434,7 @@ export default function WeekView({ date, items, onItemClick, onNewItem, onUpdate
           style={{ background: 'var(--accent)', color: '#fff' }}
         >
           {itemDragDisplay.mode === 'move'
-            ? `${minToTimeStr(itemDragDisplay.curStartMin)} – ${minToTimeStr(itemDragDisplay.curEndMin)}`
+            ? `${format(days[itemDragDisplay.curColIndex], 'EEE d')} · ${minToTimeStr(itemDragDisplay.curStartMin)} – ${minToTimeStr(itemDragDisplay.curEndMin)}`
             : `Ends ${minToTimeStr(itemDragDisplay.curEndMin)}`}
         </div>
       )}
