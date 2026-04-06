@@ -19,11 +19,15 @@ export async function POST(req: Request) {
 
   // Schedule notification to fire exactly at reminder time
   if (plain.reminderDate) {
-    await scheduleNotification({
+    const hook = await scheduleNotification({
       id:     String(plain._id),
       type:   'reminder',
       fireAt: new Date(plain.reminderDate as string),
-    }).catch(err => console.error('[posthook] schedule error:', err))
+    }).catch(err => { console.error('[posthook] schedule error:', err); return null })
+
+    if (hook?.id) {
+      await ReminderModel.findByIdAndUpdate(plain._id, { posthookId: hook.id })
+    }
   }
 
   return NextResponse.json({ ...plain, _id: String(plain._id), type: 'reminder' }, { status: 201 })

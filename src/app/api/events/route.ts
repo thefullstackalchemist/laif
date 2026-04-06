@@ -20,12 +20,17 @@ export async function POST(req: Request) {
   // Schedule a notification using the notifyBefore value from the form (null = no notification)
   const minutesBefore = typeof body.notifyBefore === 'number' ? body.notifyBefore : null
   if (plain.startDate && minutesBefore !== null) {
-    await scheduleNotification({
+    const hook = await scheduleNotification({
       id:            String(plain._id),
       type:          'event',
       fireAt:        new Date(plain.startDate as string),
       minutesBefore,
-    }).catch(err => console.error('[posthook] schedule error:', err))
+    }).catch(err => { console.error('[posthook] schedule error:', err); return null })
+
+    // Store hook ID so it can be cancelled before re-scheduling
+    if (hook?.id) {
+      await EventModel.findByIdAndUpdate(plain._id, { posthookId: hook.id })
+    }
   }
 
   return NextResponse.json({ ...plain, _id: String(plain._id), type: 'event' }, { status: 201 })

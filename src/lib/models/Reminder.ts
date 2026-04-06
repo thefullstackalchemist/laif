@@ -7,6 +7,7 @@ const ReminderSchema = new Schema({
   reminderDate: { type: Date, required: true },
   notified: { type: Boolean, default: false },
   color: { type: String, default: '#fbbf24' },
+  posthookId: { type: String, default: null },
 }, { timestamps: true })
 
 export default models.Reminder || mongoose.model('Reminder', ReminderSchema)

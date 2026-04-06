@@ -12,6 +12,17 @@ interface ScheduleOptions {
   minutesBefore?: number
 }
 
+/** Cancel an existing hook by its posthook ID. Silent on failure. */
+export async function cancelNotification(hookId: string) {
+  if (!posthook || !hookId) return
+  try {
+    await posthook.hooks.delete(hookId)
+    console.log(`[posthook] ✅ Cancelled hook ${hookId}`)
+  } catch (err) {
+    console.warn(`[posthook] ⚠️ Could not cancel hook ${hookId}:`, err)
+  }
+}
+
 export async function scheduleNotification({ id, type, fireAt, minutesBefore = 0 }: ScheduleOptions) {
   console.log(`[posthook] scheduleNotification called — ${type}:${id} fireAt=${fireAt.toISOString()} minutesBefore=${minutesBefore}`)
 
