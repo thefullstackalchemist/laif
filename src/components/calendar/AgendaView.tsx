@@ -16,21 +16,34 @@ function getDateLabel(dateStr: string): string {
   return format(d, 'EEEE, MMMM d')
 }
 
-const TODAY_KEY = format(new Date(), 'yyyy-MM-dd')
+/** Returns LOCAL yyyy-MM-dd key for a UTC ISO string — safe for all timezones */
+function toLocalDateKey(isoStr: string): string {
+  const d = new Date(isoStr)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function todayKey(): string {
+  return toLocalDateKey(new Date().toISOString())
+}
 
 function groupByDate(items: AnyItem[]): Map<string, AnyItem[]> {
   const map = new Map<string, AnyItem[]>()
+  // Sort by UTC ms — correct cross-timezone ordering
   const sorted = [...items].sort((a, b) => {
     const da = a.type === 'event' ? a.startDate : a.type === 'task' ? (a.dueDate ?? '') : a.reminderDate
     const db = b.type === 'event' ? b.startDate : b.type === 'task' ? (b.dueDate ?? '') : b.reminderDate
-    return da.localeCompare(db)
+    return new Date(da).getTime() - new Date(db).getTime()
   })
+  const today = todayKey()
   for (const item of sorted) {
     const dateStr = item.type === 'event' ? item.startDate : item.type === 'task' ? (item.dueDate ?? '') : item.reminderDate
     if (!dateStr) continue
     const d = new Date(dateStr)
     const isOverdueTask = item.type === 'task' && (item as Task).status !== 'done' && isPast(d) && !isToday(d)
-    const key = isOverdueTask ? TODAY_KEY : format(d, 'yyyy-MM-dd')
+    const key = isOverdueTask ? today : toLocalDateKey(dateStr)
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(item)
   }
@@ -137,7 +150,7 @@ export default function AgendaView({ items, onItemClick, onUpdateItem }: AgendaV
             Array.from(grouped.entries()).map(([key, dayItems]) => (
               <motion.div key={key} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                 <p className="text-xs font-semibold uppercase tracking-wider mb-2 px-2" style={{ color: 'var(--text-3)' }}>
-                  {getDateLabel(key + 'T00:00:00')}
+                  {getDateLabel(key + 'T12:00:00')}
                 </p>
                 <div className="space-y-1.5">
                   {dayItems.map((item) => {
@@ -183,6 +196,11 @@ export default function AgendaView({ items, onItemClick, onUpdateItem }: AgendaV
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-xs font-medium px-1.5 py-0.5 rounded-md" style={{ background: bg, color }}>
+                              {item.type === 'event' ? 'Event' : item.type === 'task' ? 'Task' : 'Reminder'}
+                            </span>
+                          </div>
                           <p
                             className="text-sm font-medium truncate"
                             style={{
