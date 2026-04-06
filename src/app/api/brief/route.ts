@@ -4,17 +4,20 @@ import type { AnyItem, CalendarEvent, Task, Reminder } from '@/types'
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 const MODEL = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free'
 
-function dayLabel(iso: string, now: Date): string {
+function dayDiff(iso: string, now: Date): number {
   const d = new Date(iso)
-  const diffDays = Math.round(
+  return Math.round(
     (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() -
      new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86_400_000
   )
-  if (diffDays === 0)  return 'today'
-  if (diffDays === 1)  return 'tomorrow'
-  if (diffDays === -1) return 'yesterday'
-  if (diffDays > 1)    return `in ${diffDays} days`
-  return `${Math.abs(diffDays)} days ago`
+}
+
+function dayLabel(diff: number): string {
+  if (diff === 0)  return 'today'
+  if (diff === 1)  return 'tomorrow'
+  if (diff > 1)    return `in ${diff} days`
+  if (diff === -1) return '1 day overdue'
+  return `${Math.abs(diff)} days overdue`
 }
 
 function fmtTime(iso: string): string {
@@ -70,51 +73,55 @@ export async function POST(req: Request) {
   const overdueLines:  string[] = []
 
   for (const e of events) {
-    const label = dayLabel(e.startDate, now)
+    const diff  = dayDiff(e.startDate, now)
+    const label = dayLabel(diff)
     const time  = fmtTime(e.startDate)
     const entry = `event "${e.title}" at ${time}`
-    if (label === 'today')    todayLines.push(entry)
-    else if (label === 'tomorrow') tomorrowLines.push(entry)
-    else                      upcomingLines.push(`${entry} (${label})`)
+    if (diff === 0)      todayLines.push(entry)
+    else if (diff === 1) tomorrowLines.push(entry)
+    else if (diff > 1)   upcomingLines.push(`${entry} (${label})`)
+    // past events ignored
   }
 
   for (const t of tasks) {
     if (!t.dueDate) { todayLines.push(`task "${t.title}" (no due date)`); continue }
-    const label = dayLabel(t.dueDate, now)
+    const diff  = dayDiff(t.dueDate, now)
+    const label = dayLabel(diff)
     const pri   = t.priority === 'high' ? ' [high priority]' : ''
     const entry = `task "${t.title}"${pri}`
-    if (label === 'today')         todayLines.push(entry)
-    else if (label === 'tomorrow') tomorrowLines.push(entry)
-    else if (label.includes('ago')) overdueLines.push(entry)
-    else                           upcomingLines.push(`${entry} (due ${label})`)
+    if (diff === 0)      todayLines.push(entry)
+    else if (diff === 1) tomorrowLines.push(entry)
+    else if (diff < 0)   overdueLines.push(`${entry} (${label})`)   // any past date = overdue
+    else                 upcomingLines.push(`${entry} (due ${label})`)
   }
 
   for (const r of reminders) {
-    const label = dayLabel(r.reminderDate, now)
+    const diff  = dayDiff(r.reminderDate, now)
+    const label = dayLabel(diff)
     const time  = fmtTime(r.reminderDate)
     const entry = `reminder "${r.title}" at ${time}`
-    if (label === 'today')         todayLines.push(entry)
-    else if (label === 'tomorrow') tomorrowLines.push(entry)
-    else                           upcomingLines.push(`${entry} (${label})`)
+    if (diff === 0)      todayLines.push(entry)
+    else if (diff === 1) tomorrowLines.push(entry)
+    else if (diff > 1)   upcomingLines.push(`${entry} (${label})`)
   }
 
   // ── Build fallback labels (no times, just titles) ─────────────────────
-  const todayTitles    = [...events, ...tasks, ...reminders]
+  const todayTitles = [...events, ...tasks, ...reminders]
     .filter(i => {
       const d = i.type === 'event' ? (i as CalendarEvent).startDate : i.type === 'task' ? (i as Task).dueDate ?? '' : (i as Reminder).reminderDate
-      return d && dayLabel(d, now) === 'today'
+      return d && dayDiff(d, now) === 0
     })
     .map(i => i.title)
 
   const tomorrowTitles = [...events, ...tasks, ...reminders]
     .filter(i => {
       const d = i.type === 'event' ? (i as CalendarEvent).startDate : i.type === 'task' ? (i as Task).dueDate ?? '' : (i as Reminder).reminderDate
-      return d && dayLabel(d, now) === 'tomorrow'
+      return d && dayDiff(d, now) === 1
     })
     .map(i => i.title)
 
   const overdueTitles = tasks
-    .filter(t => t.dueDate && dayLabel(t.dueDate, now).includes('ago'))
+    .filter(t => t.dueDate && dayDiff(t.dueDate, now) < 0)
     .map(t => t.title)
 
   const fallback = buildFallback(period, todayTitles, tomorrowTitles, overdueTitles)
