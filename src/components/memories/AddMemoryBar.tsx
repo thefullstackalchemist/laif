@@ -42,7 +42,6 @@ export default function AddMemoryBar({ onAdd }: AddMemoryBarProps) {
       style={{
         background: 'var(--glass-card-bg)',
         border: '1px solid var(--border)',
-        backdropFilter: 'blur(20px)',
         boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
       }}
     >

@@ -60,8 +60,6 @@ export default function MonthGrid({ year, month, items, onDayClick, onItemClick 
               style={{
                 borderRight:  idx % 7 !== 6 ? '1px solid var(--cal-col-border)' : undefined,
                 borderBottom: idx < days.length - 7 ? '1px solid var(--cal-col-border)' : undefined,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
               }}
             >
               {/* Date number */}
@@ -72,7 +70,7 @@ export default function MonthGrid({ year, month, items, onDayClick, onItemClick 
                   )}
                   style={
                     today
-                      ? { background: 'linear-gradient(135deg, var(--accent), #06b6d4)', color: '#fff', boxShadow: '0 0 10px var(--accent-glow)' }
+                      ? { background: 'var(--accent)', color: '#fff' }
                       : { color: inMonth ? 'var(--text-1)' : 'var(--text-3)' }
                   }
                 >

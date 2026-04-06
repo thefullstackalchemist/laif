@@ -112,7 +112,7 @@ export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaul
             key="backdrop"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-40"
-            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            style={{ background: 'rgba(0,0,0,0.6)',  }}
             onClick={onClose}
           />
           <motion.div

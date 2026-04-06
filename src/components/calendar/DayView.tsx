@@ -100,7 +100,7 @@ export default function DayView({ date, items, onItemClick, onNewItem }: DayView
         <div
           className="w-9 h-9 flex items-center justify-center rounded-full text-sm font-bold"
           style={today
-            ? { background: 'linear-gradient(135deg,#8b5cf6,#06b6d4)', color: '#fff', boxShadow: '0 0 16px rgba(139,92,246,0.4)' }
+            ? { background: 'var(--accent)', color: '#fff' }
             : { color: 'var(--text-1)' }}
         >
           {format(date, 'd')}
@@ -229,7 +229,6 @@ export default function DayView({ date, items, onItemClick, onNewItem }: DayView
                   ),
                   background: 'rgba(139,92,246,0.18)',
                   border: '2px solid rgba(139,92,246,0.55)',
-                  backdropFilter: 'blur(6px)',
                 }}
               >
                 <div className="px-2 pt-1">

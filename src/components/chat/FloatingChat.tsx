@@ -247,7 +247,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
               background: 'var(--glass-card-bg)',
               border: '1px solid var(--glass-border)',
               boxShadow: '0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(35,61,255,0.1)',
-              backdropFilter: 'blur(24px)',
+              
             }}
           >
             {/* Header */}
@@ -294,7 +294,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
                       )}
                       style={{
                         background: msg.role === 'user'
-                          ? 'linear-gradient(135deg,rgba(35,61,255,0.75),rgba(6,182,212,0.5))'
+                          ? 'var(--accent)'
                           : 'var(--input-bg)',
                         color: msg.role === 'user' ? '#fff' : 'var(--text-1)',
                         border: msg.role === 'assistant' ? '1px solid var(--border)' : 'none',
@@ -366,7 +366,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
                   onClick={sendMessage}
                   disabled={!input.trim() || streaming}
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-150 active:scale-90 disabled:opacity-30"
-                  style={{ background: 'linear-gradient(135deg,var(--accent),#06b6d4)' }}
+                  style={{ background: 'var(--accent)' }}
                 >
                   <Send size={14} className="text-white" />
                 </button>
@@ -398,7 +398,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
                 color: 'var(--text-1)',
                 background: 'var(--glass-card-bg)',
                 border: '1px solid var(--glass-border)',
-                backdropFilter: 'blur(12px)',
+                
               }}
             >
               chat with laif
@@ -418,7 +418,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
             {size !== 'bubble' ? (
               <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}
                 className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, var(--accent), #06b6d4)', boxShadow: '0 8px 32px var(--accent-glow)' }}
+                style={{ background: 'var(--accent)' }}
               >
                 <X size={22} />
               </motion.div>

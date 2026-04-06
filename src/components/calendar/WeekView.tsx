@@ -98,7 +98,7 @@ export default function WeekView({ date, items, onItemClick, onNewItem }: WeekVi
         style={{
           borderBottom: '1px solid var(--border)',
           background: 'var(--cal-header-bg)',
-          backdropFilter: 'blur(16px)',
+          
         }}
       >
         <div className="w-14 flex-shrink-0 border-r" style={{ borderColor: 'var(--cal-col-border)' }} />
@@ -115,7 +115,7 @@ export default function WeekView({ date, items, onItemClick, onNewItem }: WeekVi
               <span
                 className="w-8 h-8 flex items-center justify-center text-sm font-bold rounded-full"
                 style={isToday(day)
-                  ? { background: 'linear-gradient(135deg,var(--accent),#06b6d4)', color: '#fff', boxShadow: '0 0 16px var(--accent-glow)' }
+                  ? { background: 'var(--accent)', color: '#fff' }
                   : { color: 'var(--text-1)' }}
               >
                 {format(day, 'd')}
@@ -250,7 +250,6 @@ export default function WeekView({ date, items, onItemClick, onNewItem }: WeekVi
                       ),
                       background: 'var(--accent-dim)',
                       border: '2px solid var(--accent)',
-                      backdropFilter: 'blur(6px)',
                       opacity: 0.85,
                     }}
                   >

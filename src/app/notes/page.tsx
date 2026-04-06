@@ -21,7 +21,7 @@ export default function NotesPage() {
       {/* Header */}
       <header
         className="fixed top-0 left-0 right-0 z-[200] flex items-center justify-between px-6 py-3"
-        style={{ borderBottom: '1px solid var(--border)', background: 'var(--cal-header-bg)', backdropFilter: 'blur(20px)' }}
+        style={{ borderBottom: '1px solid var(--border)', background: 'var(--cal-header-bg)' }}
       >
         {/* Left */}
         <div className="flex items-center gap-3 flex-1">

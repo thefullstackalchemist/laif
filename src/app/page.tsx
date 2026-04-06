@@ -48,10 +48,6 @@ export default function HomePage() {
       />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
-        <div
-          className="absolute top-0 right-0 w-96 h-96 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at top right, var(--accent-dim) 0%, transparent 70%)' }}
-        />
         <CalendarView
           view={view}
           items={items}

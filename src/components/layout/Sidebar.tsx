@@ -67,7 +67,7 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
             'flex items-center justify-center gap-2 w-full py-2 rounded-xl text-sm font-medium text-white transition-all duration-150 active:scale-95',
             collapsed ? 'px-0' : 'px-3'
           )}
-          style={{ background: 'linear-gradient(135deg, var(--accent), #06b6d4)', boxShadow: '0 0 20px var(--accent-dim)' }}
+          style={{ background: 'var(--btn-primary-bg)' }}
         >
           <Plus size={15} />
           {!collapsed && <span>Add item</span>}
