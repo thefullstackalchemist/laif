@@ -5,6 +5,39 @@ import { Bell, X, Calendar, CheckSquare, BellRing } from 'lucide-react'
 import { useWebNotifications } from '@/hooks/useWebNotifications'
 import { formatDistanceToNow } from 'date-fns'
 
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
+
+function urlBase64ToArrayBuffer(b64: string): ArrayBuffer {
+  const pad  = '='.repeat((4 - b64.length % 4) % 4)
+  const raw  = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'))
+  const buf  = new Uint8Array(raw.length)
+  for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i)
+  return buf.buffer
+}
+
+async function ensurePushSubscription() {
+  try {
+    if (!VAPID_PUBLIC_KEY || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+
+    const perm = await Notification.requestPermission()
+    if (perm !== 'granted') return
+
+    const reg = await navigator.serviceWorker.ready
+    const sub = (await reg.pushManager.getSubscription()) ?? await reg.pushManager.subscribe({
+      userVisibleOnly:      true,
+      applicationServerKey: urlBase64ToArrayBuffer(VAPID_PUBLIC_KEY),
+    })
+
+    await fetch('/api/push/subscribe', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ subscription: sub.toJSON(), userAgent: navigator.userAgent }),
+    })
+  } catch {
+    // non-critical
+  }
+}
+
 const TYPE_ICON: Record<string, React.ReactNode> = {
   event:    <Calendar  size={13} />,
   task:     <CheckSquare size={13} />,
@@ -19,6 +52,15 @@ const TYPE_COLOR: Record<string, string> = {
 
 export default function NotificationCenter() {
   const { toasts, unread, dismiss, clearUnread } = useWebNotifications()
+
+  // Register SW + subscribe to Web Push on every page load
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(() => ensurePushSubscription())
+        .catch(err => console.error('[sw] registration failed:', err))
+    }
+  }, [])
 
   // Clear badge when user sees toasts
   useEffect(() => {

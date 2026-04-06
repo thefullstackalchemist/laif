@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server'
+import webpush from 'web-push'
 import { connectDB } from '@/lib/mongodb'
 import EventModel from '@/lib/models/Event'
 import ReminderModel from '@/lib/models/Reminder'
 import TaskModel from '@/lib/models/Task'
 import DeviceModel from '@/lib/models/Device'
+import WebPushSubscriptionModel from '@/lib/models/WebPushSubscription'
 import { messaging, rtdb } from '@/lib/firebase-admin'
+
+webpush.setVapidDetails(
+  process.env.VAPID_SUBJECT!,
+  process.env.VAPID_PUBLIC_KEY!,
+  process.env.VAPID_PRIVATE_KEY!,
+)
 
 const SUPPORTED_TYPES = ['event', 'reminder', 'task'] as const
 type ItemType = typeof SUPPORTED_TYPES[number]
@@ -101,6 +109,41 @@ export async function POST(req: Request) {
     console.log(`[posthook_listener] RTDB notification written: ${ref.key}`)
   } catch (err) {
     console.warn('[posthook_listener] RTDB write failed (non-fatal):', err)
+  }
+
+  // Send Web Push to all browser subscribers
+  try {
+    const subs = await WebPushSubscriptionModel.find({}).lean() as unknown as {
+      endpoint: string; keys: { p256dh: string; auth: string }
+    }[]
+
+    if (subs.length) {
+      const payload = JSON.stringify({ title: notification.title, body: notification.body, url: '/' })
+      const results = await Promise.allSettled(
+        subs.map(s =>
+          webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, payload)
+        )
+      )
+      const failed = results.filter(r => r.status === 'rejected').length
+      console.log(`[posthook_listener] Web Push: ${subs.length - failed}/${subs.length} sent`)
+
+      // Prune dead subscriptions (410 Gone)
+      const deadEndpoints: string[] = []
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          const err = (r as PromiseRejectedResult).reason
+          if (err?.statusCode === 410 || err?.statusCode === 404) {
+            deadEndpoints.push(subs[i].endpoint)
+          }
+        }
+      })
+      if (deadEndpoints.length) {
+        await WebPushSubscriptionModel.deleteMany({ endpoint: { $in: deadEndpoints } })
+        console.log(`[posthook_listener] Removed ${deadEndpoints.length} expired subscriptions`)
+      }
+    }
+  } catch (err) {
+    console.warn('[posthook_listener] Web Push failed (non-fatal):', err)
   }
 
   if (type === 'reminder') {

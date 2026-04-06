@@ -40,8 +40,8 @@ export function useWebNotifications() {
       setToasts(prev => [...prev, ...incoming])
       setUnread(n => n + incoming.length)
 
-      // Native browser notifications when tab is in background
-      if (document.visibilityState === 'hidden' && Notification.permission === 'granted') {
+      // OS-level notification (fires even when tab is visible — Mac popup)
+      if (Notification.permission === 'granted') {
         incoming.forEach(n => {
           new Notification(n.title, { body: n.body, icon: '/logo_new.png' })
         })
