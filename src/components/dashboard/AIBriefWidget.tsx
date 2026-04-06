@@ -9,7 +9,8 @@ export default function AIBriefWidget({ items }: Props) {
   const [brief, setBrief]     = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const fetchedRef             = useRef(false)
-  const cacheKey               = `ai-brief-${new Date().toDateString()}`
+  // Cache per 3-hour block so morning/afternoon/evening each refresh once
+  const cacheKey               = `ai-brief-${new Date().toDateString()}-${Math.floor(new Date().getHours() / 3)}`
 
   async function fetchBrief(force = false) {
     if (loading) return

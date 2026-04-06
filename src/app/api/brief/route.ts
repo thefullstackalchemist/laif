@@ -4,43 +4,157 @@ import type { AnyItem, CalendarEvent, Task, Reminder } from '@/types'
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 const MODEL = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free'
 
+function dayLabel(iso: string, now: Date): string {
+  const d = new Date(iso)
+  const diffDays = Math.round(
+    (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() -
+     new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86_400_000
+  )
+  if (diffDays === 0)  return 'today'
+  if (diffDays === 1)  return 'tomorrow'
+  if (diffDays === -1) return 'yesterday'
+  if (diffDays > 1)    return `in ${diffDays} days`
+  return `${Math.abs(diffDays)} days ago`
+}
+
+function fmtTime(iso: string): string {
+  try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+  catch { return '' }
+}
+
+/** Deterministic fallback — never hallucinates */
+function buildFallback(
+  period: string,
+  todayItems: string[],
+  tomorrowItems: string[],
+  overdue: string[],
+): string {
+  const parts: string[] = []
+
+  if (overdue.length) {
+    parts.push(`You have ${overdue.length} overdue item${overdue.length > 1 ? 's' : ''} (${overdue.join(', ')}) still pending.`)
+  }
+
+  if (todayItems.length === 0 && tomorrowItems.length === 0) {
+    return `Good ${period}! Nothing scheduled — a good time to get ahead.`
+  }
+
+  if (todayItems.length > 0) {
+    parts.push(`Today: ${todayItems.join(', ')}.`)
+  } else {
+    parts.push(`Nothing scheduled for today.`)
+  }
+
+  if (tomorrowItems.length > 0) {
+    parts.push(`Tomorrow: ${tomorrowItems.join(', ')}.`)
+  }
+
+  return parts.join(' ')
+}
+
 export async function POST(req: Request) {
   const { items = [] }: { items: AnyItem[] } = await req.json().catch(() => ({ items: [] }))
 
-  const now  = new Date()
-  const hour = now.getHours()
+  const now    = new Date()
+  const hour   = now.getHours()
   const period = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
 
-  const fmt = (iso: string) => {
-    try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-    catch { return iso }
+  // ── Bucket items by day relative to now ──────────────────────────────
+  const events    = (items.filter(i => i.type === 'event')    as CalendarEvent[])
+  const tasks     = (items.filter(i => i.type === 'task' && (i as Task).status !== 'done') as Task[])
+  const reminders = (items.filter(i => i.type === 'reminder') as Reminder[])
+
+  const todayLines:    string[] = []
+  const tomorrowLines: string[] = []
+  const upcomingLines: string[] = []
+  const overdueLines:  string[] = []
+
+  for (const e of events) {
+    const label = dayLabel(e.startDate, now)
+    const time  = fmtTime(e.startDate)
+    const entry = `event "${e.title}" at ${time}`
+    if (label === 'today')    todayLines.push(entry)
+    else if (label === 'tomorrow') tomorrowLines.push(entry)
+    else                      upcomingLines.push(`${entry} (${label})`)
   }
 
-  const events    = items.filter(i => i.type === 'event') as CalendarEvent[]
-  const tasks     = items.filter(i => i.type === 'task' && (i as Task).status !== 'done') as Task[]
-  const reminders = items.filter(i => i.type === 'reminder') as Reminder[]
-  const overdue   = tasks.filter(t => t.dueDate && new Date(t.dueDate) < now)
+  for (const t of tasks) {
+    if (!t.dueDate) { todayLines.push(`task "${t.title}" (no due date)`); continue }
+    const label = dayLabel(t.dueDate, now)
+    const pri   = t.priority === 'high' ? ' [high priority]' : ''
+    const entry = `task "${t.title}"${pri}`
+    if (label === 'today')         todayLines.push(entry)
+    else if (label === 'tomorrow') tomorrowLines.push(entry)
+    else if (label.includes('ago')) overdueLines.push(entry)
+    else                           upcomingLines.push(`${entry} (due ${label})`)
+  }
 
-  const lines: string[] = [
-    `Today is ${now.toDateString()}, ${period}.`,
-    events.length
-      ? `Events: ${events.map(e => `"${e.title}" at ${fmt(e.startDate)}`).join('; ')}`
-      : 'No events today.',
-    tasks.length
-      ? `Pending tasks: ${tasks.map(t => `"${t.title}"${t.priority === 'high' ? ' (high priority)' : ''}`).join('; ')}`
-      : 'No pending tasks.',
-    overdue.length ? `Overdue: ${overdue.map(t => `"${t.title}"`).join(', ')}` : '',
-    reminders.length ? `Reminders: ${reminders.map(r => `"${r.title}" at ${fmt(r.reminderDate)}`).join('; ')}` : '',
-  ].filter(Boolean)
+  for (const r of reminders) {
+    const label = dayLabel(r.reminderDate, now)
+    const time  = fmtTime(r.reminderDate)
+    const entry = `reminder "${r.title}" at ${time}`
+    if (label === 'today')         todayLines.push(entry)
+    else if (label === 'tomorrow') tomorrowLines.push(entry)
+    else                           upcomingLines.push(`${entry} (${label})`)
+  }
 
-  const prompt = `You are a personal assistant writing a warm, concise daily brief. Write exactly 1-2 sentences summarising what's ahead today. Be specific, mention key items by name if there are few, use a natural tone. No bullet points, no markdown, no sign-off. Output only the brief text.
+  // ── Build fallback labels (no times, just titles) ─────────────────────
+  const todayTitles    = [...events, ...tasks, ...reminders]
+    .filter(i => {
+      const d = i.type === 'event' ? (i as CalendarEvent).startDate : i.type === 'task' ? (i as Task).dueDate ?? '' : (i as Reminder).reminderDate
+      return d && dayLabel(d, now) === 'today'
+    })
+    .map(i => i.title)
 
-Context:
-${lines.join('\n')}`
+  const tomorrowTitles = [...events, ...tasks, ...reminders]
+    .filter(i => {
+      const d = i.type === 'event' ? (i as CalendarEvent).startDate : i.type === 'task' ? (i as Task).dueDate ?? '' : (i as Reminder).reminderDate
+      return d && dayLabel(d, now) === 'tomorrow'
+    })
+    .map(i => i.title)
+
+  const overdueTitles = tasks
+    .filter(t => t.dueDate && dayLabel(t.dueDate, now).includes('ago'))
+    .map(t => t.title)
+
+  const fallback = buildFallback(period, todayTitles, tomorrowTitles, overdueTitles)
+
+  // ── Skip AI call if nothing is scheduled ─────────────────────────────
+  if (todayLines.length === 0 && tomorrowLines.length === 0 && overdueLines.length === 0) {
+    const extra = upcomingLines.length ? ` Next up: ${upcomingLines[0]}.` : ''
+    return NextResponse.json({ brief: `Good ${period}! Nothing on the schedule for today or tomorrow.${extra}` })
+  }
 
   if (!OPENROUTER_API_KEY) {
-    return NextResponse.json({ brief: `Good ${period}! You have ${events.length} event(s) and ${tasks.length} task(s) today.` })
+    return NextResponse.json({ brief: fallback })
   }
+
+  // ── Build strictly-grounded context for the AI ───────────────────────
+  const contextLines: string[] = [
+    `Current time: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${period})`,
+    `Today (${now.toDateString()}):`,
+    ...(todayLines.length ? todayLines.map(l => `  - ${l}`) : ['  - nothing']),
+  ]
+  if (tomorrowLines.length) {
+    contextLines.push('Tomorrow:')
+    tomorrowLines.forEach(l => contextLines.push(`  - ${l}`))
+  }
+  if (overdueLines.length) {
+    contextLines.push('Overdue:')
+    overdueLines.forEach(l => contextLines.push(`  - ${l}`))
+  }
+  if (upcomingLines.length) {
+    contextLines.push('Upcoming:')
+    upcomingLines.slice(0, 3).forEach(l => contextLines.push(`  - ${l}`))
+  }
+
+  const systemMsg = `You are a concise personal assistant. Your ONLY job is to summarise the schedule data provided by the user into 1–2 plain sentences. Rules:
+- ONLY mention items that are explicitly listed in the data below. Do not add, infer, or invent any tasks, events, or details that are not in the list.
+- Do not give advice, suggestions, or action items.
+- No bullet points, no markdown, no greeting, no sign-off.
+- Output only the brief text, nothing else.`
+
+  const userMsg = `Here is my current schedule data:\n\n${contextLines.join('\n')}\n\nWrite a 1–2 sentence brief strictly based on this data only.`
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -53,15 +167,22 @@ ${lines.join('\n')}`
       },
       body: JSON.stringify({
         model: MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 100,
-        temperature: 0.65,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user',   content: userMsg },
+        ],
+        max_tokens: 80,
+        temperature: 0.1,   // low temp = factual, less hallucination
       }),
     })
-    const data = await res.json()
+    const data  = await res.json()
     const brief = (data?.choices?.[0]?.message?.content ?? '').trim()
+
+    // Sanity-check: if the model output is empty or suspiciously long, use fallback
+    if (!brief || brief.length > 300) return NextResponse.json({ brief: fallback })
+
     return NextResponse.json({ brief })
   } catch {
-    return NextResponse.json({ brief: `Good ${period}! You have ${events.length} event(s) and ${tasks.length} task(s) today.` })
+    return NextResponse.json({ brief: fallback })
   }
 }
