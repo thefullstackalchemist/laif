@@ -1,41 +1,63 @@
 'use client'
-import { useState } from 'react'
-import Image from 'next/image'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sun, Moon, Plus, LayoutDashboard } from 'lucide-react'
+import { LayoutDashboard } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
 import AddItemModal from '@/components/modals/AddItemModal'
 import FloatingChat from '@/components/chat/FloatingChat'
 import ClockWidget from '@/components/dashboard/ClockWidget'
-import DaySummaryWidget from '@/components/dashboard/DaySummaryWidget'
 import MiniCalendarWidget from '@/components/dashboard/MiniCalendarWidget'
 import WeatherWidget from '@/components/dashboard/WeatherWidget'
 import RSSFeedWidget from '@/components/dashboard/RSSFeedWidget'
+import PomodoroWidget from '@/components/dashboard/PomodoroWidget'
+import TodayTasksWidget from '@/components/dashboard/TodayTasksWidget'
+import AIBriefWidget from '@/components/dashboard/AIBriefWidget'
 import { useItems } from '@/hooks/useItems'
-import { useTheme } from '@/contexts/ThemeContext'
-import type { AnyItem } from '@/types'
+import { isToday as dfIsToday, isPast as dfIsPast } from 'date-fns'
+import type { AnyItem, Task, CalendarEvent } from '@/types'
 
-function BentoCard({ children, className = '', style = {} }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+function BentoCard({ children, className = '', style = {} }: {
+  children: React.ReactNode; className?: string; style?: React.CSSProperties
+}) {
   return (
     <div
-      className={`rounded-2xl p-5 overflow-hidden ${className}`}
-      style={{
-        background: 'var(--card)',
-        border: '1px solid var(--border)',
-        ...style,
-      }}
+      className={`rounded-2xl p-4 overflow-hidden ${className}`}
+      style={{ background: 'var(--card)', border: '1px solid var(--border)', ...style }}
     >
       {children}
     </div>
   )
 }
 
+/** Point 9 — ambient subtitle based on schedule + time */
+function useAmbientGreeting(items: AnyItem[]): string {
+  return useMemo(() => {
+    const h = new Date().getHours()
+    const todayEvents  = items.filter(i => i.type === 'event' && dfIsToday(new Date((i as CalendarEvent).startDate)))
+    const pendingTasks = items.filter(i => i.type === 'task' && (i as Task).status !== 'done' && dfIsToday(new Date((i as Task).dueDate ?? '')))
+    const overdue      = items.filter(i => i.type === 'task' && (i as Task).status !== 'done' && (i as Task).dueDate && dfIsPast(new Date((i as Task).dueDate!)) && !dfIsToday(new Date((i as Task).dueDate!)))
+    const total        = todayEvents.length + pendingTasks.length
+
+    if (h >= 22 || h < 5)  return 'burning the midnight oil'
+    if (h >= 18) {
+      if (overdue.length)  return `${overdue.length} thing${overdue.length > 1 ? 's' : ''} still need attention`
+      if (total === 0)     return 'all clear — nice work today'
+      return 'winding down'
+    }
+    if (overdue.length)    return `${overdue.length} overdue task${overdue.length > 1 ? 's' : ''} need your attention`
+    if (total === 0)       return 'looks like a clear day'
+    if (total >= 5)        return `busy one — ${total} things lined up`
+    if (total >= 3)        return `a few things on the plate today`
+    return 'your day, at a glance'
+  }, [items])
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const { items, loading, silentRefresh, addItem, updateItem, deleteItem } = useItems()
-  const { theme, toggle } = useTheme()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const subtitle = useAmbientGreeting(items)
 
   const counts = {
     events:    items.filter(i => i.type === 'event').length,
@@ -59,55 +81,65 @@ export default function DashboardPage() {
       />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Page header */}
+        {/* Header */}
         <div
-          className="flex items-center gap-3 px-6 py-3 flex-shrink-0"
+          className="flex items-center gap-2.5 px-6 py-3 flex-shrink-0"
           style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}
         >
-          <LayoutDashboard size={15} style={{ color: 'var(--accent-light)' }} />
-          <span className="text-sm font-semibold" style={{ color: 'var(--text-1)' }}>laif</span>
-          <span className="text-xs" style={{ color: 'var(--text-3)' }}>— your day, at a glance</span>
+          <LayoutDashboard size={14} style={{ color: 'var(--accent-light)' }} />
+          <span className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>laif</span>
+          <span className="text-xs" style={{ color: 'var(--text-3)' }}>— {subtitle}</span>
           {loading && (
-            <div className="w-3.5 h-3.5 rounded-full border-2 border-t-transparent animate-spin ml-1"
+            <div className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin ml-1"
               style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
           )}
         </div>
 
-        {/* Bento grid */}
-        <div className="flex-1 overflow-auto p-5">
+        {/* Bento grid — 4 columns, 2 rows */}
+        <div className="flex-1 overflow-auto p-4">
           <div
-            className="h-full"
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1.1fr 1fr',
-              gridTemplateRows: '1fr 1fr',
-              gap: 14,
+              gridTemplateColumns: '0.8fr 1fr 0.95fr 1.05fr',
+              gridTemplateRows: '1fr 1.15fr',
+              gap: 12,
+              height: '100%',
               minHeight: 480,
-              maxHeight: 800,
+              maxHeight: 820,
             }}
           >
-            {/* Clock — top left */}
+            {/* Clock + countdown — col 1, row 1 */}
             <BentoCard style={{ gridColumn: '1', gridRow: '1' }}>
-              <ClockWidget />
+              <ClockWidget items={items} />
             </BentoCard>
 
-            {/* Mini calendar — top center */}
+            {/* AI Brief — col 2, row 1 */}
             <BentoCard style={{ gridColumn: '2', gridRow: '1' }}>
+              <AIBriefWidget items={items} />
+            </BentoCard>
+
+            {/* Mini Calendar — col 3, row 1 */}
+            <BentoCard style={{ gridColumn: '3', gridRow: '1' }}>
               <MiniCalendarWidget items={items} />
             </BentoCard>
 
-            {/* RSS Feed — right, spans both rows */}
-            <BentoCard style={{ gridColumn: '3', gridRow: '1 / 3', display: 'flex', flexDirection: 'column' }}>
+            {/* RSS Feed — col 4, spans both rows */}
+            <BentoCard style={{ gridColumn: '4', gridRow: '1 / 3', display: 'flex', flexDirection: 'column' }}>
               <RSSFeedWidget />
             </BentoCard>
 
-            {/* Day summary — bottom left */}
+            {/* Pomodoro — col 1, row 2 */}
             <BentoCard style={{ gridColumn: '1', gridRow: '2' }}>
-              <DaySummaryWidget items={items} />
+              <PomodoroWidget />
             </BentoCard>
 
-            {/* Weather — bottom center */}
-            <BentoCard style={{ gridColumn: '2', gridRow: '2' }}>
+            {/* Today's tasks — col 2, row 2 */}
+            <BentoCard style={{ gridColumn: '2', gridRow: '2', display: 'flex', flexDirection: 'column' }}>
+              <TodayTasksWidget items={items} onUpdateItem={updateItem} />
+            </BentoCard>
+
+            {/* Weather — col 3, row 2 */}
+            <BentoCard style={{ gridColumn: '3', gridRow: '2' }}>
               <WeatherWidget />
             </BentoCard>
           </div>
