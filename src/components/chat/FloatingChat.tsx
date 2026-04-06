@@ -141,7 +141,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
     }
   }, [size])
 
-  const open   = () => setSize('mini')
+  const open   = () => setSize('expanded')
   const close  = () => setSize('bubble')
   const toggle = () => setSize(s => s === 'expanded' ? 'mini' : 'expanded')
 
