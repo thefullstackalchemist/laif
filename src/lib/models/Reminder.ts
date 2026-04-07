@@ -7,6 +7,7 @@ const ReminderSchema = new Schema({
   reminderDate: { type: Date, required: true },
   notified: { type: Boolean, default: false },
   color: { type: String, default: '#fbbf24' },
+  umbrellas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Umbrella' }],
   posthookId: { type: String, default: null },
   comments: [{ text: { type: String, required: true }, createdAt: { type: Date, default: Date.now } }],
 }, { timestamps: true })

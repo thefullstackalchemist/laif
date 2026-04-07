@@ -4,7 +4,17 @@ import { motion } from 'framer-motion'
 import { X, MapPin, Clock, Calendar, Bell, CheckCircle2, Circle, Send, MessageSquare, Pencil, Check, Trash2 } from 'lucide-react'
 import { format, isPast, isToday } from 'date-fns'
 import { ITEM_COLORS, ITEM_BG, formatTime } from '@/lib/utils'
+import UmbrellaPicker from '@/components/umbrellas/UmbrellaPicker'
 import type { AnyItem, CalendarEvent, Task, Reminder, Comment } from '@/types'
+
+// datetime-local value  →  ISO string
+function toISO(local: string) { return new Date(local).toISOString() }
+// ISO string  →  datetime-local value
+function toLocal(iso: string) {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 function formatDT(iso: string) {
   const d = new Date(iso)
@@ -17,7 +27,7 @@ interface ItemDetailPanelProps {
   onClose: () => void
   onUpdateItem?: (type: AnyItem['type'], id: string, data: Partial<AnyItem>) => void
   onDeleteItem?: (type: AnyItem['type'], id: string) => void
-  onItemUpdated?: (item: AnyItem) => void  // called after comment added
+  onItemUpdated?: (item: AnyItem) => void
 }
 
 export default function ItemDetailPanel({ item, onClose, onUpdateItem, onDeleteItem, onItemUpdated }: ItemDetailPanelProps) {
@@ -26,19 +36,37 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onDeleteI
   const isTask = item.type === 'task'
   const isDone = isTask && (item as Task).status === 'done'
 
-  const [comments, setComments]       = useState<Comment[]>((item as any).comments ?? [])
-  const [draft, setDraft]             = useState('')
-  const [posting, setPosting]         = useState(false)
-  const [editingTitle, setEditingTitle] = useState(false)
-  const [titleDraft, setTitleDraft]   = useState(item.title)
+  const [comments, setComments]           = useState<Comment[]>((item as any).comments ?? [])
+  const [draft, setDraft]                 = useState('')
+  const [posting, setPosting]             = useState(false)
+  const [editingTitle, setEditingTitle]   = useState(false)
+  const [titleDraft, setTitleDraft]       = useState(item.title)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  // Reset title state whenever the selected item changes
+  // Date editing state
+  const [editingDate, setEditingDate]     = useState(false)
+  const [dateDraft, setDateDraft]         = useState(() => getDateValue(item))
+
+  // Umbrella state (local copy so changes feel instant)
+  const [umbrellas, setUmbrellas]         = useState<string[]>((item as any).umbrellas?.map(String) ?? [])
+
+  // Reset all local state when selected item changes
   useEffect(() => {
     setTitleDraft(item.title)
     setEditingTitle(false)
     setConfirmDelete(false)
-  }, [item._id, item.title])
+    setEditingDate(false)
+    setDateDraft(getDateValue(item))
+    setUmbrellas((item as any).umbrellas?.map(String) ?? [])
+    setComments((item as any).comments ?? [])
+  }, [item._id])
+
+  function getDateValue(it: AnyItem): string {
+    if (it.type === 'event')    return toLocal((it as CalendarEvent).startDate)
+    if (it.type === 'task')     return (it as Task).dueDate ? toLocal((it as Task).dueDate!) : ''
+    if (it.type === 'reminder') return toLocal((it as Reminder).reminderDate)
+    return ''
+  }
 
   async function submitComment() {
     const text = draft.trim()
@@ -56,20 +84,40 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onDeleteI
         setDraft('')
         onItemUpdated?.({ ...item, ...updated, comments: updated.comments })
       }
-    } finally {
-      setPosting(false)
-    }
+    } finally { setPosting(false) }
   }
 
   function saveTitle() {
     const trimmed = titleDraft.trim()
     if (!trimmed || trimmed === item.title || !onUpdateItem || !item._id) {
-      setTitleDraft(item.title)
-      setEditingTitle(false)
-      return
+      setTitleDraft(item.title); setEditingTitle(false); return
     }
     onUpdateItem(item.type, item._id, { title: trimmed } as Partial<AnyItem>)
     setEditingTitle(false)
+  }
+
+  function saveDate() {
+    if (!dateDraft || !onUpdateItem || !item._id) { setEditingDate(false); return }
+    const iso = toISO(dateDraft)
+    if (item.type === 'event') {
+      // Keep same duration, shift both start + end
+      const ev   = item as CalendarEvent
+      const dur  = new Date(ev.endDate).getTime() - new Date(ev.startDate).getTime()
+      const newStart = new Date(iso)
+      const newEnd   = new Date(newStart.getTime() + dur)
+      onUpdateItem('event', item._id, { startDate: newStart.toISOString(), endDate: newEnd.toISOString() } as Partial<AnyItem>)
+    } else if (item.type === 'task') {
+      onUpdateItem('task', item._id, { dueDate: iso } as Partial<AnyItem>)
+    } else if (item.type === 'reminder') {
+      onUpdateItem('reminder', item._id, { reminderDate: iso } as Partial<AnyItem>)
+    }
+    setEditingDate(false)
+  }
+
+  function handleUmbrellaChange(ids: string[]) {
+    setUmbrellas(ids)
+    if (!onUpdateItem || !item._id) return
+    onUpdateItem(item.type, item._id, { umbrellas: ids } as Partial<AnyItem>)
   }
 
   function handleDelete() {
@@ -84,10 +132,8 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onDeleteI
     onUpdateItem('task', item._id, { status: next } as Partial<AnyItem>)
   }
 
-  const TYPE_LABEL: Record<AnyItem['type'], string> = {
-    event: 'Event', task: 'Task', reminder: 'Reminder',
-  }
-  const TYPE_ICON: Record<AnyItem['type'], React.ReactNode> = {
+  const TYPE_LABEL: Record<AnyItem['type'], string> = { event: 'Event', task: 'Task', reminder: 'Reminder' }
+  const TYPE_ICON:  Record<AnyItem['type'], React.ReactNode> = {
     event:    <Calendar size={13} />,
     task:     <CheckCircle2 size={13} />,
     reminder: <Bell size={13} />,
@@ -129,20 +175,12 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onDeleteI
                 }}
                 onBlur={saveTitle}
               />
-              <button
-                onMouseDown={e => { e.preventDefault(); saveTitle() }}
-                className="btn-ghost p-1.5 flex-shrink-0"
-                style={{ color }}
-              >
+              <button onMouseDown={e => { e.preventDefault(); saveTitle() }} className="btn-ghost p-1.5 flex-shrink-0" style={{ color }}>
                 <Check size={14} />
               </button>
             </div>
           ) : (
-            <button
-              className="group flex items-start gap-1.5 text-left mt-1 w-full"
-              onClick={() => setEditingTitle(true)}
-              title="Click to edit title"
-            >
+            <button className="group flex items-start gap-1.5 text-left mt-1 w-full" onClick={() => setEditingTitle(true)} title="Click to edit title">
               <h2 className="text-base font-semibold leading-snug flex-1" style={{
                 color: 'var(--text-1)',
                 textDecoration: isDone ? 'line-through' : 'none',
@@ -157,67 +195,77 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onDeleteI
         <div className="flex items-center gap-1 flex-shrink-0">
           {confirmDelete ? (
             <>
-              <button
-                onClick={handleDelete}
-                className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors"
-                style={{ background: '#ef4444', color: '#fff' }}
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="btn-ghost p-1.5 text-xs"
-              >
-                Cancel
-              </button>
+              <button onClick={handleDelete} className="px-2.5 py-1 rounded-lg text-xs font-semibold" style={{ background: '#ef4444', color: '#fff' }}>Delete</button>
+              <button onClick={() => setConfirmDelete(false)} className="btn-ghost p-1.5 text-xs">Cancel</button>
             </>
           ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="btn-ghost p-1.5"
-              title="Delete"
-              style={{ color: 'var(--text-3)' }}
-            >
+            <button onClick={() => setConfirmDelete(true)} className="btn-ghost p-1.5" title="Delete" style={{ color: 'var(--text-3)' }}>
               <Trash2 size={14} />
             </button>
           )}
-          <button onClick={onClose} className="btn-ghost p-1.5">
-            <X size={15} />
-          </button>
+          <button onClick={onClose} className="btn-ghost p-1.5"><X size={15} /></button>
         </div>
       </div>
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
 
-        {/* Meta */}
-        <div className="space-y-2">
-          {item.type === 'event' && (
-            <>
-              <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
-                <Clock size={13} style={{ color }} />
-                <span>{formatDT((item as CalendarEvent).startDate)} — {formatTime((item as CalendarEvent).endDate)}</span>
-              </div>
-              {(item as CalendarEvent).location && (
-                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
-                  <MapPin size={13} style={{ color }} />
-                  <span>{(item as CalendarEvent).location}</span>
-                </div>
+        {/* Date / time — editable */}
+        <div>
+          {editingDate ? (
+            <div className="space-y-2">
+              <p className="text-xs font-medium" style={{ color: 'var(--text-3)' }}>
+                {item.type === 'event' ? 'START DATE & TIME' : item.type === 'task' ? 'DUE DATE' : 'REMINDER TIME'}
+              </p>
+              <input
+                type="datetime-local"
+                value={dateDraft}
+                onChange={e => setDateDraft(e.target.value)}
+                className="input-field text-sm w-full"
+              />
+              {item.type === 'event' && (
+                <p className="text-xs" style={{ color: 'var(--text-3)' }}>Duration is preserved when shifting start time.</p>
               )}
-            </>
+              <div className="flex gap-2">
+                <button onClick={saveDate} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium" style={{ background: color, color: '#fff' }}>
+                  <Check size={11} /> Save
+                </button>
+                <button onClick={() => { setEditingDate(false); setDateDraft(getDateValue(item)) }} className="px-3 py-1.5 rounded-lg text-xs" style={{ background: 'var(--border)', color: 'var(--text-2)' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditingDate(true)}
+              className="group flex items-center gap-2 text-sm w-full text-left"
+              style={{ color: 'var(--text-2)' }}
+            >
+              {item.type === 'event' && <Clock size={13} style={{ color }} />}
+              {item.type === 'task'  && <Clock size={13} style={{ color: isPast(new Date((item as Task).dueDate ?? '')) && !isToday(new Date((item as Task).dueDate ?? '')) ? '#ef4444' : color }} />}
+              {item.type === 'reminder' && <Bell size={13} style={{ color }} />}
+              <span className="flex-1">
+                {item.type === 'event'    && `${formatDT((item as CalendarEvent).startDate)} — ${formatTime((item as CalendarEvent).endDate)}`}
+                {item.type === 'task'     && ((item as Task).dueDate ? `Due ${formatDT((item as Task).dueDate!)}` : 'No due date')}
+                {item.type === 'reminder' && formatDT((item as Reminder).reminderDate)}
+              </span>
+              <Pencil size={11} className="opacity-0 group-hover:opacity-40 transition-opacity flex-shrink-0" />
+            </button>
           )}
-          {item.type === 'task' && (item as Task).dueDate && (
-            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
-              <Clock size={13} style={{ color: isPast(new Date((item as Task).dueDate!)) && !isToday(new Date((item as Task).dueDate!)) ? '#ef4444' : color }} />
-              <span>Due {formatDT((item as Task).dueDate!)}</span>
+
+          {/* Location for events */}
+          {item.type === 'event' && (item as CalendarEvent).location && !editingDate && (
+            <div className="flex items-center gap-2 text-sm mt-2" style={{ color: 'var(--text-2)' }}>
+              <MapPin size={13} style={{ color }} />
+              <span>{(item as CalendarEvent).location}</span>
             </div>
           )}
-          {item.type === 'reminder' && (
-            <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
-              <Bell size={13} style={{ color }} />
-              <span>{formatDT((item as Reminder).reminderDate)}</span>
-            </div>
-          )}
+        </div>
+
+        {/* Umbrellas */}
+        <div>
+          <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-3)' }}>UMBRELLAS</p>
+          <UmbrellaPicker selected={umbrellas} onChange={handleUmbrellaChange} />
         </div>
 
         {/* Description */}
@@ -245,19 +293,15 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onDeleteI
           <p className="text-xs font-medium mb-3 flex items-center gap-1.5" style={{ color: 'var(--text-3)' }}>
             <MessageSquare size={11} /> NOTES & COMMENTS {comments.length > 0 && `· ${comments.length}`}
           </p>
-
           {comments.length === 0 && (
             <p className="text-xs italic" style={{ color: 'var(--text-3)' }}>No comments yet</p>
           )}
-
           <div className="space-y-2 mb-4">
             {[...comments].reverse().map((c, i) => (
               <div key={c._id ?? i} className="rounded-xl p-3" style={{ background: 'var(--input-bg)', border: '1px solid var(--border)' }}>
                 <p className="text-sm" style={{ color: 'var(--text-1)' }}>{c.text}</p>
                 {c.createdAt && (
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-3)' }}>
-                    {format(new Date(c.createdAt), 'MMM d, h:mm a')}
-                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-3)' }}>{format(new Date(c.createdAt), 'MMM d, h:mm a')}</p>
                 )}
               </div>
             ))}
@@ -276,11 +320,7 @@ export default function ItemDetailPanel({ item, onClose, onUpdateItem, onDeleteI
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submitComment() }}
           />
-          <button
-            onClick={submitComment}
-            disabled={!draft.trim() || posting}
-            className="btn-primary px-3 flex items-center justify-center self-end disabled:opacity-40"
-          >
+          <button onClick={submitComment} disabled={!draft.trim() || posting} className="btn-primary px-3 flex items-center justify-center self-end disabled:opacity-40">
             <Send size={13} />
           </button>
         </div>

@@ -1,5 +1,12 @@
 export type ItemType = 'event' | 'task' | 'reminder'
 
+export interface Umbrella {
+  _id: string
+  name: string
+  color: string
+  createdAt?: string
+}
+
 export interface Comment {
   _id?: string
   text: string
@@ -18,6 +25,7 @@ export interface CalendarEvent {
   allDay?: boolean
   location?: string
   color: string
+  umbrellas?: string[]
   comments?: Comment[]
   createdAt?: string
 }
@@ -31,6 +39,7 @@ export interface Task {
   priority: TaskPriority
   status: TaskStatus
   color: string
+  umbrellas?: string[]
   comments?: Comment[]
   createdAt?: string
 }
@@ -43,6 +52,7 @@ export interface Reminder {
   reminderDate: string
   notified?: boolean
   color: string
+  umbrellas?: string[]
   comments?: Comment[]
   createdAt?: string
 }
