@@ -509,8 +509,8 @@ async function callAI(messages: { role: string; content: string }[]): Promise<st
     headers: {
       Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://laifx.app',
-      'X-Title': 'Laif',
+      'HTTP-Referer': 'https://pim.app',
+      'X-Title': 'PIM',
     },
     body: JSON.stringify({
       model: MODEL,

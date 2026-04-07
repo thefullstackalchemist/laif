@@ -46,8 +46,8 @@ async function parseWithAI(text: string): Promise<Partial<LeanDoc> | null> {
       headers: {
         Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://laifx.app',
-        'X-Title': 'Laif',
+        'HTTP-Referer': 'https://pim.app',
+        'X-Title': 'PIM',
       },
       body: JSON.stringify({
         model: MODEL,

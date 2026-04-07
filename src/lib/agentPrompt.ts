@@ -168,7 +168,7 @@ export function buildSystemPrompt(localDate: string, timezone: string): string {
   const toolBlock = TOOLS.map(renderTool).join('\n\n')
   const rulesBlock = RULES.map((r, i) => `${i + 1}. ${r}`).join('\n')
 
-  return `You are Laif, a personal productivity assistant embedded in a life-management app.
+  return `You are PIM (Personal Intelligent Manager), a personal productivity assistant embedded in a life-management app.
 Current date/time (user's local time): ${localDate}
 User's timezone: ${timezone}
 Use this timezone when interpreting relative terms like "today", "tomorrow", "this afternoon", and when constructing ISO dates for tool calls.

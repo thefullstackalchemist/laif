@@ -43,7 +43,7 @@ async function sendPushToAllDevices(notification: { title: string; body: string 
         data,
         android: {
           priority: 'high',
-          notification: { sound: 'default', channelId: 'laif_notifications' },
+          notification: { sound: 'default', channelId: 'pim_notifications' },
         },
       })
     )

@@ -56,7 +56,7 @@ export default function LoginPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo_new.png"
-            alt="laif"
+            alt="PIM"
             width={72}
             height={72}
             className="mb-3 object-contain"
@@ -133,7 +133,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">
-          laif — private workspace
+          PIM — Personal Intelligent Manager
         </p>
       </motion.div>
     </div>

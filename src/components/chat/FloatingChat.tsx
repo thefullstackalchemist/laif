@@ -32,7 +32,7 @@ const STEP_PALETTE: Record<StepIcon, { dark: string; light: string }> = {
 const WELCOME: ChatMessage = {
   id: '__welcome__',
   role: 'assistant',
-  content: "Hi! I'm Laif. Ask me about your schedule, notes, or memories — or tell me what to add.",
+  content: "Hi! I'm PIM. Ask me about your schedule, notes, or memories — or tell me what to add.",
   timestamp: new Date(),
 }
 
@@ -256,7 +256,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
               style={{ borderBottom: '1px solid var(--border)', background: 'var(--accent-dim)' }}
             >
               <div className="flex items-center gap-2.5">
-                <Image src="/logo_new.png" alt="laif" unoptimized width={38} height={38} className="object-contain" />
+                <Image src="/logo_new.png" alt="PIM" unoptimized width={38} height={38} className="object-contain" />
                 <p className="text-xs" style={{ color: streaming ? (theme === 'light' ? '#047857' : '#34d399') : 'var(--text-3)' }}>
                   {streaming ? 'Working...' : 'a real assistant'}
                 </p>
@@ -284,7 +284,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
               {messages.map(msg => (
                 <div key={msg.id} className={cn('flex items-start', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
                   {msg.role === 'assistant' && (
-                    <Image src="/logo_new.png" alt="laif" unoptimized width={24} height={24} className="object-contain mr-2 flex-shrink-0" />
+                    <Image src="/logo_new.png" alt="PIM" unoptimized width={24} height={24} className="object-contain mr-2 flex-shrink-0" />
                   )}
                   <div style={{ maxWidth: size === 'expanded' ? '75%' : '82%' }}>
                     <div
@@ -385,7 +385,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        {/* "chat with laif" label slides in from right */}
+        {/* "chat with PIM" label slides in from right */}
         <AnimatePresence>
           {hovered && size === 'bubble' && (
             <motion.span
@@ -401,7 +401,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
                 
               }}
             >
-              chat with laif
+              chat with PIM
             </motion.span>
           )}
         </AnimatePresence>
@@ -442,7 +442,7 @@ export default function FloatingChat({ onRefreshItems }: FloatingChatProps) {
                   filter: { repeat: Infinity, duration: 3, ease: 'easeInOut' },
                 }}
               >
-                <img src="/logo_new.png" alt="laif" width={56} height={56} className="object-contain rounded-2xl" />
+                <img src="/logo_new.png" alt="PIM" width={56} height={56} className="object-contain rounded-2xl" />
               </motion.div>
             )}
           </AnimatePresence>

@@ -42,7 +42,7 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
       <div className={cn('flex items-center pt-5 pb-4', collapsed ? 'justify-center px-3' : 'gap-3 px-4')}>
         <Image
           src="/logo_new.png"
-          alt="laif"
+          alt="PIM"
           width={42}
           height={42}
           unoptimized
@@ -54,8 +54,8 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
               initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
               className="flex flex-col leading-tight"
             >
-              <span className="text-sm font-bold tracking-wide" style={{ color: 'var(--text-1)' }}>laif</span>
-              <span className="text-xs" style={{ color: 'var(--text-3)' }}>a real assistant</span>
+              <span className="text-sm font-bold tracking-wide" style={{ color: 'var(--text-1)' }}>PIM</span>
+              <span className="text-xs" style={{ color: 'var(--text-3)' }}>Personal Intelligent Manager</span>
             </motion.div>
           )}
         </AnimatePresence>

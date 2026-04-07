@@ -88,7 +88,7 @@ export default function DashboardPage() {
           style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}
         >
           <LayoutDashboard size={14} style={{ color: 'var(--accent-light)' }} />
-          <span className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>laif</span>
+          <span className="text-sm font-bold" style={{ color: 'var(--text-1)' }}>PIM</span>
           <span className="text-xs" style={{ color: 'var(--text-3)' }}>— {subtitle}</span>
           {loading && (
             <div className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin ml-1"

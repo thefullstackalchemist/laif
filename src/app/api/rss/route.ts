@@ -78,7 +78,7 @@ export async function GET(req: Request) {
 
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LaifRSS/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PimRSS/1.0)' },
       next: { revalidate: 300 },
     })
     if (!res.ok) throw new Error(`Upstream ${res.status}`)

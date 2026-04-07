@@ -45,7 +45,7 @@ export default function NotesPage() {
         <div className="flex items-center justify-center flex-1">
           <Image
             src="/logo_new.png"
-            alt="laif"
+            alt="PIM"
             width={36}
             height={36}
             unoptimized

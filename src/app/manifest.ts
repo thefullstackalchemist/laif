@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'laif — Your personal assistant',
-    short_name: 'laif',
+    name: 'PIM — Your personal assistant',
+    short_name: 'PIM',
     description: 'Manage events, tasks, reminders and notes — all in one premium workspace.',
     start_url: '/',
     display: 'standalone',

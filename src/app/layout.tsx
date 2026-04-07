@@ -12,12 +12,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "laif — Your personal assistant",
+  title: "PIM — Personal Intelligent Manager",
   description: "Manage events, tasks, reminders and notes — all in one premium workspace.",
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'laif',
+    title: 'PIM',
   },
 };
 

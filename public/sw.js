@@ -1,5 +1,5 @@
 // Service worker — PWA install + Web Push notifications
-const CACHE = 'laif-v1'
+const CACHE = 'PIM-v1'
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()))
@@ -11,14 +11,14 @@ self.addEventListener('fetch', e => {
 // ── Web Push ──────────────────────────────────────────────────────────────────
 self.addEventListener('push', e => {
   let data = {}
-  try { data = e.data?.json() ?? {} } catch { data = { title: 'laif', body: e.data?.text() ?? '' } }
+  try { data = e.data?.json() ?? {} } catch { data = { title: 'PIM', body: e.data?.text() ?? '' } }
 
-  const title   = data.title ?? 'laif'
+  const title   = data.title ?? 'PIM'
   const options = {
     body:  data.body  ?? '',
     icon:  '/logo_new.png',
     badge: '/logo_new.png',
-    tag:   data.tag   ?? 'laif-notification',
+    tag:   data.tag   ?? 'PIM-notification',
     data:  { url: data.url ?? '/' },
     vibrate: [200, 100, 200],
   }

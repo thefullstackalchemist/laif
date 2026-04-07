@@ -12,7 +12,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark')
 
   useEffect(() => {
-    const stored = localStorage.getItem('laif-theme') as Theme | null
+    const stored = localStorage.getItem('pim-theme') as Theme | null
     const initial = stored ?? 'dark'
     setTheme(initial)
     document.documentElement.setAttribute('data-theme', initial)
@@ -21,7 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   function toggle() {
     setTheme(prev => {
       const next: Theme = prev === 'dark' ? 'light' : 'dark'
-      localStorage.setItem('laif-theme', next)
+      localStorage.setItem('pim-theme', next)
       document.documentElement.setAttribute('data-theme', next)
       return next
     })

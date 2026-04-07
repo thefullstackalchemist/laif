@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET env variable is not set')
 const SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
 
-const COOKIE_NAME = 'laif_token'
+const COOKIE_NAME = 'pim_token'
 const TOKEN_EXPIRY = '24h'
 
 export interface TokenPayload extends JWTPayload {
