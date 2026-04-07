@@ -50,13 +50,13 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
         />
         <AnimatePresence>
           {!collapsed && (
-            <motion.span
+            <motion.div
               initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
-              className="text-xs leading-tight"
-              style={{ color: 'var(--text-3)' }}
+              className="flex flex-col leading-tight"
             >
-              a real assistant
-            </motion.span>
+              <span className="text-sm font-bold tracking-wide" style={{ color: 'var(--text-1)' }}>laif</span>
+              <span className="text-xs" style={{ color: 'var(--text-3)' }}>a real assistant</span>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
