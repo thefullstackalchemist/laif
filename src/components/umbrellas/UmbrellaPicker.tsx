@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Umbrella } from 'lucide-react'
 import { useUmbrellas } from '@/hooks/useUmbrellas'
 
 interface Props {
@@ -40,7 +40,7 @@ export default function UmbrellaPicker({ selected, onChange }: Props) {
             className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
             style={{ background: u.color + '22', color: u.color, border: `1px solid ${u.color}55` }}
           >
-            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: u.color }} />
+            <Umbrella size={9} className="flex-shrink-0" />
             {u.name}
             <button
               onClick={() => toggle(u._id)}
@@ -77,7 +77,7 @@ export default function UmbrellaPicker({ selected, onChange }: Props) {
               className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-xs text-left transition-colors hover:opacity-80"
               style={{ color: 'var(--text-1)' }}
             >
-              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: u.color }} />
+              <Umbrella size={11} style={{ color: u.color, flexShrink: 0 }} />
               {u.name}
             </button>
           ))}

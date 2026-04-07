@@ -1,14 +1,12 @@
 'use client'
-import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, ChevronLeft, ChevronRight, StickyNote, Plus, LogOut, Brain, Sun, Moon, Users, List, LayoutDashboard, Settings2 } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, StickyNote, Plus, LogOut, Brain, Sun, Moon, Users, List, LayoutDashboard, Settings2, Umbrella } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useUmbrellas } from '@/hooks/useUmbrellas'
-import UmbrellaManager from '@/components/umbrellas/UmbrellaManager'
 import type { CalView } from '@/components/calendar/CalendarView'
 
 interface SidebarProps {
@@ -26,7 +24,6 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
   const { theme, toggle } = useTheme()
   const total = counts.events + counts.tasks + counts.reminders
   const { umbrellas } = useUmbrellas()
-  const [managerOpen, setManagerOpen] = useState(false)
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -137,14 +134,14 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && <span>Contacts</span>}
         </Link>
 
-        {/* Umbrellas */}
-        <button
-          onClick={() => setManagerOpen(true)}
-          className={cn('sidebar-item w-full', collapsed && 'justify-center px-0')}
+        {/* Umbrellas / Settings */}
+        <Link
+          href="/settings"
+          className={cn('sidebar-item w-full', pathname === '/settings' && 'active', collapsed && 'justify-center px-0')}
         >
           <Settings2 size={16} className="flex-shrink-0" />
-          {!collapsed && <span>Umbrellas</span>}
-        </button>
+          {!collapsed && <span>Settings</span>}
+        </Link>
       </nav>
 
       {/* Umbrellas */}
@@ -157,14 +154,14 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
             <div style={{ height: 1, background: 'var(--border)', marginBottom: 8 }} />
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium tracking-wider" style={{ color: 'var(--text-3)' }}>UMBRELLAS</p>
-              <button onClick={() => setManagerOpen(true)} className="p-0.5 rounded hover:opacity-60 transition-opacity" style={{ color: 'var(--text-3)' }}>
+              <Link href="/settings" className="p-0.5 rounded hover:opacity-60 transition-opacity" style={{ color: 'var(--text-3)' }}>
                 <Settings2 size={11} />
-              </button>
+              </Link>
             </div>
             <div className="space-y-1">
               {umbrellas.map(u => (
                 <div key={u._id} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: u.color }} />
+                  <Umbrella size={11} style={{ color: u.color, flexShrink: 0 }} />
                   <span className="text-xs truncate" style={{ color: 'var(--text-2)' }}>{u.name}</span>
                 </div>
               ))}
@@ -177,7 +174,7 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
       {collapsed && umbrellas.length > 0 && (
         <div className="px-3 pb-3 flex flex-col items-center gap-1.5">
           {umbrellas.slice(0, 5).map(u => (
-            <div key={u._id} className="w-2 h-2 rounded-full" style={{ background: u.color }} />
+            <Umbrella key={u._id} size={13} style={{ color: u.color }} />
           ))}
         </div>
       )}
@@ -241,11 +238,6 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && <span className="text-xs">Sign out</span>}
         </button>
       </div>
-
-      {/* Umbrella Manager modal */}
-      <AnimatePresence>
-        {managerOpen && <UmbrellaManager onClose={() => setManagerOpen(false)} />}
-      </AnimatePresence>
 
       {/* Collapse toggle */}
       <button

@@ -5,19 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useUmbrellas } from '@/hooks/useUmbrellas'
 import type { Umbrella } from '@/types'
 
-// ── 36-color palette: 9 reds · 9 oranges · 9 yellows · 9 blues ──────────────
-export const UMBRELLA_COLORS = [
-  // Reds
-  '#FF6B6B','#FF4757','#E74C3C','#C0392B','#B71C1C','#FF5252','#EF5350','#E53935','#D50000',
-  // Oranges
-  '#FF7F50','#FF6348','#E67E22','#F39C12','#FF8C00','#D35400','#E65100','#FF9800','#FB8C00',
-  // Yellows
-  '#FFD700','#FFC107','#F1C40F','#FFB300','#FFEE58','#F9CA24','#EAB308','#FBBF24','#FDD835',
-  // Blues
-  '#60A5FA','#3B82F6','#2563EB','#1D4ED8','#1E40AF','#0EA5E9','#06B6D4','#0891B2','#2196F3',
-]
-
-const FAMILY_LABELS = ['Reds','Oranges','Yellows','Blues']
+import { UMBRELLA_COLORS } from './UmbrellaSettings'
 
 interface Props {
   onClose: () => void
@@ -190,32 +178,38 @@ export default function UmbrellaManager({ onClose }: Props) {
   )
 }
 
-// ── Color grid ────────────────────────────────────────────────────────────────
+const PALETTE = [
+  { label: 'Reds',    colors: ['#FFCDD2','#EF9A9A','#E57373','#EF5350','#F44336','#E53935','#C62828','#B71C1C','#7F0000'] },
+  { label: 'Oranges', colors: ['#FFE0B2','#FFCC80','#FFB74D','#FFA726','#FF9800','#FB8C00','#E65100','#D35400','#BF360C'] },
+  { label: 'Yellows', colors: ['#FFF9C4','#FFF176','#FFEE58','#FFCA28','#FFB300','#F9A825','#F57F17','#E65100','#FF6F00'] },
+  { label: 'Blues',   colors: ['#BBDEFB','#90CAF9','#64B5F6','#42A5F5','#2196F3','#1E88E5','#1565C0','#0D47A1','#01579B'] },
+]
+
 function ColorGrid({ value, onChange }: { value: string; onChange: (c: string) => void }) {
   return (
-    <div className="space-y-1.5">
-      {[0,1,2,3].map(row => (
-        <div key={row} className="flex gap-1.5">
-          {UMBRELLA_COLORS.slice(row * 9, row * 9 + 9).map(c => (
-            <button
-              key={c}
-              onClick={() => onChange(c)}
-              className="w-6 h-6 rounded-full flex-shrink-0 transition-transform hover:scale-110"
-              style={{
-                background: c,
-                outline: value === c ? `2px solid ${c}` : 'none',
-                outlineOffset: 2,
-                transform: value === c ? 'scale(1.2)' : undefined,
-              }}
-            />
-          ))}
+    <div className="space-y-2">
+      {PALETTE.map(family => (
+        <div key={family.label}>
+          <p className="text-xs mb-1" style={{ color: 'var(--text-3)' }}>{family.label}</p>
+          <div className="flex gap-1.5">
+            {family.colors.map(c => (
+              <button
+                key={c}
+                onClick={() => onChange(c)}
+                title={c}
+                style={{
+                  width: 22, height: 22, borderRadius: '50%',
+                  background: c, flexShrink: 0,
+                  outline: value === c ? `2px solid ${c}` : '2px solid transparent',
+                  outlineOffset: 2,
+                  transform: value === c ? 'scale(1.2)' : 'scale(1)',
+                  transition: 'transform 0.12s',
+                }}
+              />
+            ))}
+          </div>
         </div>
       ))}
-      <div className="flex gap-2 pt-0.5">
-        {FAMILY_LABELS.map(l => (
-          <span key={l} className="text-xs flex-1 text-center" style={{ color: 'var(--text-3)' }}>{l}</span>
-        ))}
-      </div>
     </div>
   )
 }
