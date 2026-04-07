@@ -129,7 +129,6 @@ export default function RSSSettings() {
         <AnimatePresence initial={false}>
           {allFeeds.map(feed => {
             const isActive   = activeUrls.has(feed.url)
-            const isPreset   = PRESET_FEEDS.some(p => p.url === feed.url)
             const isDisabled = !isActive && activeCount >= MAX_ACTIVE
 
             return (
@@ -170,16 +169,15 @@ export default function RSSSettings() {
                     {isActive ? <><Check size={10} /> Active</> : 'Select'}
                   </button>
 
-                  {/* Remove (custom only) */}
-                  {!isPreset && (
-                    <button
-                      onClick={() => removeFeed(feed.url)}
-                      className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
-                      style={{ color: 'var(--text-3)' }}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  )}
+                  {/* Remove */}
+                  <button
+                    onClick={() => removeFeed(feed.url)}
+                    className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
+                    style={{ color: 'var(--text-3)' }}
+                    title="Remove feed"
+                  >
+                    <Trash2 size={12} />
+                  </button>
                 </div>
               </motion.div>
             )
