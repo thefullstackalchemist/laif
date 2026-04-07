@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import FloatingChat from '@/components/chat/FloatingChat'
 import UmbrellaSettings from '@/components/umbrellas/UmbrellaSettings'
+import RSSSettings from '@/components/dashboard/RSSSettings'
 import type { CalView } from '@/components/calendar/CalendarView'
 
 export default function SettingsPage() {
@@ -30,6 +31,7 @@ export default function SettingsPage() {
           </div>
 
           <UmbrellaSettings />
+          <RSSSettings />
         </div>
       </main>
 
