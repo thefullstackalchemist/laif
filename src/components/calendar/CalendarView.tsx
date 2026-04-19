@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import TopBarActions from '@/components/layout/TopBarActions'
 import { format, addMonths, subMonths, addWeeks, subWeeks, addDays, subDays } from 'date-fns'
 import MonthGrid from './MonthGrid'
 import WeekView from './WeekView'
@@ -99,7 +100,7 @@ export default function CalendarView({ view, items, loading, onItemClick, onNewI
           </div>
         </div>
 
-        {/* Right: nav — only shown when relevant */}
+        {/* Right: nav + top bar actions */}
         <div className="flex items-center gap-1 flex-1 justify-end">
           {view !== 'agenda' && (
             <>
@@ -108,6 +109,7 @@ export default function CalendarView({ view, items, loading, onItemClick, onNewI
               <button onClick={goForward} className="btn-ghost p-2"><ChevronRight size={15} /></button>
             </>
           )}
+          <TopBarActions />
         </div>
       </div>
 

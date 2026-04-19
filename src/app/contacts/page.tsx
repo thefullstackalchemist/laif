@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Plus, Search, Phone, Mail, Building2, MapPin, Tag, X, Trash2, Copy, Check } from 'lucide-react'
+import TopBarActions from '@/components/layout/TopBarActions'
 import Sidebar from '@/components/layout/Sidebar'
 import FloatingChat from '@/components/chat/FloatingChat'
 import { useItems } from '@/hooks/useItems'
@@ -355,6 +356,7 @@ function ContactsInner() {
           <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-1.5 py-2 px-3 text-xs">
             <Plus size={13} /> Add
           </button>
+          <TopBarActions />
         </div>
 
         {/* Search */}

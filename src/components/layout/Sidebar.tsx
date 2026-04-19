@@ -4,10 +4,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, ChevronLeft, ChevronRight, StickyNote, Plus, LogOut, Brain, Sun, Moon, Users, List, LayoutDashboard, Settings2, Umbrella } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, StickyNote, Brain, Users, List, LayoutDashboard, Settings2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useTheme } from '@/contexts/ThemeContext'
-import { useUmbrellas } from '@/hooks/useUmbrellas'
 import type { CalView } from '@/components/calendar/CalendarView'
 import NotesSection from '@/components/notes/NotesSection'
 
@@ -20,18 +18,9 @@ interface SidebarProps {
   onAddItem: () => void
 }
 
-export default function Sidebar({ collapsed, onToggle, currentView, onViewChange, counts, onAddItem }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggle, currentView, onViewChange }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { theme, toggle } = useTheme()
-  const total = counts.events + counts.tasks + counts.reminders
-  const { umbrellas } = useUmbrellas()
-
-  async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/login')
-    router.refresh()
-  }
 
   return (
     <motion.aside
@@ -63,26 +52,10 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
         </AnimatePresence>
       </div>
 
-      {/* Add button */}
-      <div className={cn('mb-4', collapsed ? 'px-3' : 'px-4')}>
-        <button
-          onClick={onAddItem}
-          className={cn(
-            'flex items-center justify-center gap-2 w-full py-2 rounded-xl text-sm font-medium text-white transition-all duration-150 active:scale-95',
-            collapsed ? 'px-0' : 'px-3'
-          )}
-          style={{ background: 'var(--btn-primary-bg)' }}
-        >
-          <Plus size={15} />
-          {!collapsed && <span>Add item</span>}
-        </button>
-      </div>
-
       {/* Navigation */}
       <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
         <div style={{ height: 1, background: 'var(--border)', margin: '2px 4px 6px' }} />
 
-        {/* Home / Dashboard link */}
         <Link
           href="/"
           className={cn('sidebar-item w-full', pathname === '/' && 'active', collapsed && 'justify-center px-0')}
@@ -91,7 +64,6 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && <span>Home</span>}
         </Link>
 
-        {/* Agenda link */}
         <button
           onClick={() => { onViewChange('agenda'); router.push('/calendar') }}
           className={cn('sidebar-item w-full', pathname === '/calendar' && currentView === 'agenda' && 'active', collapsed && 'justify-center px-0')}
@@ -100,7 +72,6 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && <span>Agenda</span>}
         </button>
 
-        {/* Calendar link */}
         <button
           onClick={() => { onViewChange(currentView === 'agenda' ? 'month' : currentView); router.push('/calendar') }}
           className={cn('sidebar-item w-full', pathname === '/calendar' && currentView !== 'agenda' && 'active', collapsed && 'justify-center px-0')}
@@ -117,7 +88,6 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && <span>Post-its</span>}
         </Link>
 
-        {/* Memories link */}
         <Link
           href="/memories"
           className={cn('sidebar-item w-full', pathname === '/memories' && 'active', collapsed && 'justify-center px-0')}
@@ -126,7 +96,6 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && <span>Memories</span>}
         </Link>
 
-        {/* Contacts link */}
         <Link
           href="/contacts"
           className={cn('sidebar-item w-full', pathname === '/contacts' && 'active', collapsed && 'justify-center px-0')}
@@ -135,7 +104,6 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && <span>Contacts</span>}
         </Link>
 
-        {/* Umbrellas / Settings */}
         <Link
           href="/settings"
           className={cn('sidebar-item w-full', pathname === '/settings' && 'active', collapsed && 'justify-center px-0')}
@@ -144,106 +112,11 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && <span>Settings</span>}
         </Link>
 
-        {/* Notes filesystem tree — lives inside the scrollable nav so it gets full remaining height */}
+        {/* Notes filesystem tree */}
         <Suspense fallback={null}>
           <NotesSection collapsed={collapsed} />
         </Suspense>
       </nav>
-
-      {/* Umbrellas */}
-      <AnimatePresence>
-        {!collapsed && umbrellas.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="px-4 pb-3"
-          >
-            <div style={{ height: 1, background: 'var(--border)', marginBottom: 8 }} />
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium tracking-wider" style={{ color: 'var(--text-3)' }}>UMBRELLAS</p>
-              <Link href="/settings" className="p-0.5 rounded hover:opacity-60 transition-opacity" style={{ color: 'var(--text-3)' }}>
-                <Settings2 size={11} />
-              </Link>
-            </div>
-            <div className="space-y-1">
-              {umbrellas.map(u => (
-                <div key={u._id} className="flex items-center gap-2">
-                  <Umbrella size={11} style={{ color: u.color, flexShrink: 0 }} />
-                  <span className="text-xs truncate" style={{ color: 'var(--text-2)' }}>{u.name}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Collapsed umbrella dots */}
-      {collapsed && umbrellas.length > 0 && (
-        <div className="px-3 pb-3 flex flex-col items-center gap-1.5">
-          {umbrellas.slice(0, 5).map(u => (
-            <Umbrella key={u._id} size={13} style={{ color: u.color }} />
-          ))}
-        </div>
-      )}
-
-      {/* Stats */}
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="px-4 pb-3 space-y-1.5"
-          >
-            <p className="text-xs font-medium tracking-wider mb-2" style={{ color: 'var(--text-3)' }}>OVERVIEW</p>
-            {[
-              { label: 'Events',    count: counts.events,    color: 'var(--color-event)' },
-              { label: 'Tasks',     count: counts.tasks,     color: 'var(--color-task)' },
-              { label: 'Reminders', count: counts.reminders, color: 'var(--color-reminder)' },
-            ].map(({ label, count, color }) => (
-              <div key={label} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-                  <span className="text-xs" style={{ color: 'var(--text-2)' }}>{label}</span>
-                </div>
-                <span className="text-xs font-semibold" style={{ color: 'var(--text-1)' }}>{count}</span>
-              </div>
-            ))}
-            <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: 'var(--text-3)' }}>Total</span>
-              <span className="text-xs font-bold" style={{ color: 'var(--text-1)' }}>{total}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Theme toggle + Logout */}
-      <div className={cn('pb-4', collapsed ? 'px-3' : 'px-4')}>
-        <div style={{ height: 1, background: 'var(--border)', marginBottom: 8 }} />
-
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          className={cn('sidebar-item w-full mb-1', collapsed && 'justify-center px-0')}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {theme === 'dark'
-            ? <Sun size={15} className="flex-shrink-0" />
-            : <Moon size={15} className="flex-shrink-0" />
-          }
-          {!collapsed && (
-            <span className="text-xs">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-          )}
-        </button>
-
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className={cn('sidebar-item w-full', collapsed && 'justify-center px-0')}
-          style={{ color: 'var(--text-3)' }}
-        >
-          <LogOut size={15} className="flex-shrink-0" />
-          {!collapsed && <span className="text-xs">Sign out</span>}
-        </button>
-      </div>
 
       {/* Collapse toggle */}
       <button

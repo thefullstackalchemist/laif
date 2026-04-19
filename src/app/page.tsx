@@ -13,6 +13,7 @@ import PomodoroWidget from '@/components/dashboard/PomodoroWidget'
 import DailyJournalWidget from '@/components/dashboard/DailyJournalWidget'
 import AIBriefWidget from '@/components/dashboard/AIBriefWidget'
 import PWAInstallButton from '@/components/PWAInstallButton'
+import TopBarActions from '@/components/layout/TopBarActions'
 import { useItems } from '@/hooks/useItems'
 import { isToday as dfIsToday, isPast as dfIsPast } from 'date-fns'
 import type { AnyItem, Task, CalendarEvent } from '@/types'
@@ -124,8 +125,9 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
             <PWAInstallButton />
+            <TopBarActions />
           </div>
         </div>
 
