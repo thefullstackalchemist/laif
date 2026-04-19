@@ -43,10 +43,8 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && (
             <motion.div
               initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
-              className="flex flex-col leading-tight"
             >
               <span className="text-sm font-bold tracking-wide" style={{ color: 'var(--text-1)' }}>PIM</span>
-              <span className="text-xs" style={{ color: 'var(--text-3)' }}>Personal Intelligent Manager</span>
             </motion.div>
           )}
         </AnimatePresence>
