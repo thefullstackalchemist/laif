@@ -93,30 +93,7 @@ export default function ClockWidget({ items = [] }: Props) {
         <div />
       )}
 
-      {/* Quick-nav grid */}
-      <div className="grid grid-cols-3 gap-1.5">
-        {[
-          { href: '/calendar?view=agenda', icon: List,        label: 'Agenda'   },
-          { href: '/calendar',             icon: CalendarDays, label: 'Calendar' },
-          { href: '/memories',             icon: Brain,        label: 'Memories' },
-          { href: '/contacts',             icon: Users,        label: 'Contacts' },
-          { href: '/settings',             icon: Settings2,    label: 'Settings' },
-        ].map(({ href, icon: Icon, label }) => (
-          <Link
-            key={href}
-            href={href}
-            className="flex flex-col items-center justify-center gap-1 rounded-xl py-2 transition-opacity hover:opacity-70"
-            style={{
-              background: 'var(--input-bg)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-2)',
-            }}
-          >
-            <Icon size={15} />
-            <span style={{ fontSize: 9, color: 'var(--text-3)', letterSpacing: '0.02em' }}>{label}</span>
-          </Link>
-        ))}
-      </div>
+      
 
       <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }`}</style>
     </div>
