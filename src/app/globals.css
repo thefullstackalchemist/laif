@@ -5,116 +5,124 @@
 @layer base {
   /* ── Item type colors — update per theme ────────────────── */
   :root, [data-theme="dark"] {
-    --color-event:    #8B5CF6;
+    --color-event:    #818cf8;
     --color-task:     #2DD4BF;
-    --color-reminder: #FB923C;
-    --bg-event:       #1e1040;
-    --bg-task:        #0d2d2c;
-    --bg-reminder:    #2d1806;
+    --color-reminder: #fb8f67;
+    --bg-event:       #0f1235;
+    --bg-task:        #0a2928;
+    --bg-reminder:    #271408;
   }
   [data-theme="light"] {
-    --color-event:    #6929D4;
+    --color-event:    #4f52c8;
     --color-task:     #0f766e;
     --color-reminder: #c2410c;
-    --bg-event:       #ede9f8;
+    --bg-event:       #e8e9f8;
     --bg-task:        #ccfbf1;
     --bg-reminder:    #ffedd5;
   }
 
-  /* ── Dark theme (default) ────────────────────────────────── */
+  /* ── Dark theme (default) — deep ocean midnight ──────────── */
   :root, [data-theme="dark"] {
-    --bg: #0b0b13;
-    --surface: #111119;
-    --card: #181825;
-    --border: #252535;
-    --border-hover: #353548;
-    --text-1: #f0eeff;
-    --text-2: #8b89a8;
-    --text-3: #4b4963;
-    --accent: #6929D4;
-    --accent-light: #8B5CF6;
-    --accent-dim: #1e1040;
-    --accent-glow: #6929D440;
-    --btn-primary-bg: #6929D4;
-    --btn-primary-hover: #7C3AED;
+    --bg: #070b14;
+    --surface: #0c1220;
+    --card: #111827;
+    --border: #1a2744;
+    --border-hover: #243656;
+    --text-1: #e2e8f0;
+    --text-2: #7b91ad;
+    --text-3: #3d5068;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-dim: #0f1235;
+    --accent-glow: #6366f140;
+    --btn-primary-bg: #6366f1;
+    --btn-primary-hover: #4f52c8;
 
     /* Calendar-specific */
-    --cal-header-bg: #0b0b13;
-    --cal-today-bg: #1a1040;
-    --cal-row-border: #1e1e2c;
-    --cal-row-border-half: #161624;
-    --cal-col-border: #1e1e2c;
-    --cal-cell-bg: #0f0f1a;
-    --cal-weekend-bg: #0d0d17;
+    --cal-header-bg: #070b14;
+    --cal-today-bg: #0f1535;
+    --cal-row-border: #141f35;
+    --cal-row-border-half: #0e1628;
+    --cal-col-border: #141f35;
+    --cal-cell-bg: #0a1020;
+    --cal-weekend-bg: #080e1b;
     --cal-out-of-month-bg: transparent;
-    --cal-hover-bg: #1a1a2a;
+    --cal-hover-bg: #121c30;
 
     /* Glass → flat solid */
-    --glass-bg: #151522;
-    --glass-card-bg: #131320;
-    --glass-border: #252535;
+    --glass-bg: #0e1828;
+    --glass-card-bg: #0c1525;
+    --glass-border: #1a2744;
 
     /* Scrollbar */
-    --scrollbar-thumb: #2a2a3a;
-    --scrollbar-thumb-hover: #3a3a50;
+    --scrollbar-thumb: #1e3050;
+    --scrollbar-thumb-hover: #2a4268;
 
     /* Input */
-    --input-bg: #1a1a28;
-    --input-border: #2d2d45;
+    --input-bg: #0f1a2e;
+    --input-border: #1e3050;
 
     /* Sidebar */
-    --sidebar-border: #1f1f30;
-    --sidebar-item-hover: #1c1c2c;
-    --sidebar-active-bg: #1e1040;
-    --sidebar-active-color: #8B5CF6;
+    --sidebar-border: #131f35;
+    --sidebar-item-hover: #111e33;
+    --sidebar-active-bg: #0f1535;
+    --sidebar-active-color: #818cf8;
+
+    /* Card shadow (dark — very subtle) */
+    --card-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.2);
+    --card-shadow-hover: 0 2px 8px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.3);
   }
 
-  /* ── Light theme ─────────────────────────────────────────── */
+  /* ── Light theme — paper-white, minimal ─────────────────── */
   [data-theme="light"] {
-    --bg: #f2f0f8;
-    --surface: #f8f6fd;
-    --card: #fdfcff;
-    --border: #dbd8ee;
-    --border-hover: #c4c0df;
-    --text-1: #1a1830;
-    --text-2: #6b6885;
-    --text-3: #9896b0;
-    --accent: #6929D4;
-    --accent-light: #8B5CF6;
-    --accent-dim: #e8e2f9;
-    --accent-glow: #6929D430;
-    --btn-primary-bg: #6929D4;
-    --btn-primary-hover: #7C3AED;
+    --bg: #f4f6fb;
+    --surface: #f9fafе;
+    --card: #ffffff;
+    --border: #e4e9f5;
+    --border-hover: #c8d0eb;
+    --text-1: #0f172a;
+    --text-2: #4a5880;
+    --text-3: #9aa5c4;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-dim: #eef0ff;
+    --accent-glow: #6366f125;
+    --btn-primary-bg: #6366f1;
+    --btn-primary-hover: #4f52c8;
+
+    /* Card shadow used instead of borders */
+    --card-shadow: 0 1px 3px rgba(15,23,62,0.07), 0 4px 12px rgba(15,23,62,0.05);
+    --card-shadow-hover: 0 2px 8px rgba(15,23,62,0.10), 0 8px 24px rgba(15,23,62,0.07);
 
     /* Calendar */
-    --cal-header-bg: #f2f0f8;
-    --cal-today-bg: #e8e2f9;
-    --cal-row-border: #e0ddf2;
-    --cal-row-border-half: #ece9f5;
-    --cal-col-border: #e0ddf2;
-    --cal-cell-bg: #f8f6fd;
-    --cal-weekend-bg: #f4f2fb;
-    --cal-out-of-month-bg: #edeaf5;
-    --cal-hover-bg: #eae6f8;
+    --cal-header-bg: #f4f6fb;
+    --cal-today-bg: #eef0ff;
+    --cal-row-border: #e4e9f5;
+    --cal-row-border-half: #edf0f8;
+    --cal-col-border: #e4e9f5;
+    --cal-cell-bg: #f9fafc;
+    --cal-weekend-bg: #f6f7fc;
+    --cal-out-of-month-bg: #f0f2f8;
+    --cal-hover-bg: #eef0fb;
 
-    /* Glass → flat solid */
-    --glass-bg: #f8f6fd;
-    --glass-card-bg: #fdfcff;
-    --glass-border: #dbd8ee;
+    /* Glass */
+    --glass-bg: #f9fafc;
+    --glass-card-bg: #ffffff;
+    --glass-border: #e4e9f5;
 
     /* Scrollbar */
-    --scrollbar-thumb: #c8c5e0;
-    --scrollbar-thumb-hover: #aaa8c8;
+    --scrollbar-thumb: #d0d6ee;
+    --scrollbar-thumb-hover: #b0bad8;
 
     /* Input */
-    --input-bg: #eeecf8;
-    --input-border: #d5d2ea;
+    --input-bg: #f0f2fb;
+    --input-border: #dde2f4;
 
     /* Sidebar */
-    --sidebar-border: #dbd8ee;
-    --sidebar-item-hover: #eae7f7;
-    --sidebar-active-bg: #e2dcf8;
-    --sidebar-active-color: #6929D4;
+    --sidebar-border: #e4e9f5;
+    --sidebar-item-hover: #edf0fb;
+    --sidebar-active-bg: #eef0ff;
+    --sidebar-active-color: #6366f1;
   }
 
   * {
@@ -130,10 +138,33 @@
 
   body {
     background-color: var(--bg);
+    /* Subtle horizon gradient — light: pale sky fading down; dark: deep space */
+    background-image: var(--bg-scenery);
+    background-attachment: fixed;
     color: var(--text-1);
-    font-family: var(--font-inter), system-ui, sans-serif;
+    font-family: var(--font-nunito), system-ui, sans-serif;
     overflow: hidden;
     height: 100dvh;
+  }
+
+  /* Light scenery: a soft sky-wash, brighter at top, grounding at bottom */
+  [data-theme="light"] {
+    --bg-scenery: linear-gradient(
+      180deg,
+      #eef1ff 0%,      /* pale sky */
+      #f4f6fb 35%,     /* neutral mid */
+      #f4f6fb 100%
+    );
+  }
+
+  /* Dark scenery: deep cosmos, faint nebula glow top-right */
+  [data-theme="dark"] {
+    --bg-scenery: radial-gradient(
+      ellipse 80% 50% at 75% -10%,
+      rgba(99,102,241,0.08) 0%,
+      transparent 60%
+    ),
+    linear-gradient(180deg, #070b14 0%, #070b14 100%);
   }
 
   ::selection {
@@ -166,7 +197,8 @@
   .glass-card {
     background: var(--glass-card-bg);
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
+    border-radius: 20px;
+    box-shadow: var(--card-shadow, none);
   }
 
   .btn-primary {
@@ -258,4 +290,16 @@
   .gradient-text {
     color: var(--accent-light);
   }
+}
+
+/* ── Focus mode breathing ring ───────────────────────────── */
+@keyframes breathe {
+  0%, 100% { transform: scale(1);    opacity: 0.18; }
+  50%       { transform: scale(1.10); opacity: 0.06; }
+}
+.breathing-ring {
+  animation: breathe 4s ease-in-out infinite;
+  border-radius: 9999px;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  pointer-events: none;
 }
