@@ -20,8 +20,8 @@ function dayLabel(diff: number): string {
   return `${Math.abs(diff)} days overdue`
 }
 
-function fmtTime(iso: string): string {
-  try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+function fmtTime(iso: string, tz: string): string {
+  try { return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: tz }) }
   catch { return '' }
 }
 
@@ -56,11 +56,14 @@ function buildFallback(
 }
 
 export async function POST(req: Request) {
-  const { items = [] }: { items: AnyItem[] } = await req.json().catch(() => ({ items: [] }))
+  const { items = [], timezone = 'Asia/Kolkata' }: { items: AnyItem[]; timezone?: string } =
+    await req.json().catch(() => ({ items: [] }))
 
-  const now    = new Date()
-  const hour   = now.getHours()
-  const period = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
+  // Use client timezone so "morning/afternoon/evening" and day boundaries are correct
+  const nowLocal = new Date().toLocaleString('sv-SE', { timeZone: timezone })  // "2026-04-19 14:30:00"
+  const now      = new Date(nowLocal)
+  const hour     = now.getHours()
+  const period   = hour < 5 ? 'night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night'
 
   // ── Bucket items by day relative to now ──────────────────────────────
   const events    = (items.filter(i => i.type === 'event')    as CalendarEvent[])
@@ -75,7 +78,7 @@ export async function POST(req: Request) {
   for (const e of events) {
     const diff  = dayDiff(e.startDate, now)
     const label = dayLabel(diff)
-    const time  = fmtTime(e.startDate)
+    const time  = fmtTime(e.startDate, timezone)
     const entry = `event "${e.title}" at ${time}`
     if (diff === 0)      todayLines.push(entry)
     else if (diff === 1) tomorrowLines.push(entry)
@@ -98,7 +101,7 @@ export async function POST(req: Request) {
   for (const r of reminders) {
     const diff  = dayDiff(r.reminderDate, now)
     const label = dayLabel(diff)
-    const time  = fmtTime(r.reminderDate)
+    const time  = fmtTime(r.reminderDate, timezone)
     const entry = `reminder "${r.title}" at ${time}`
     if (diff === 0)      todayLines.push(entry)
     else if (diff === 1) tomorrowLines.push(entry)
@@ -138,7 +141,7 @@ export async function POST(req: Request) {
 
   // ── Build strictly-grounded context for the AI ───────────────────────
   const contextLines: string[] = [
-    `Current time: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${period})`,
+    `Current time: ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: timezone })} (${period})`,
     `Today (${now.toDateString()}):`,
     ...(todayLines.length ? todayLines.map(l => `  - ${l}`) : ['  - nothing']),
   ]

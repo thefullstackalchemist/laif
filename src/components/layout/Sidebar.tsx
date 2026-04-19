@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useUmbrellas } from '@/hooks/useUmbrellas'
 import type { CalView } from '@/components/calendar/CalendarView'
+import NotesSection from '@/components/notes/NotesSection'
 
 interface SidebarProps {
   collapsed: boolean
@@ -107,7 +108,6 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           {!collapsed && <span>Calendar</span>}
         </button>
 
-        {/* Notes link */}
         <Link
           href="/notes"
           className={cn('sidebar-item w-full', pathname === '/notes' && 'active', collapsed && 'justify-center px-0')}
@@ -142,6 +142,9 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
           <Settings2 size={16} className="flex-shrink-0" />
           {!collapsed && <span>Settings</span>}
         </Link>
+
+        {/* Notes filesystem tree — lives inside the scrollable nav so it gets full remaining height */}
+        <NotesSection collapsed={collapsed} />
       </nav>
 
       {/* Umbrellas */}

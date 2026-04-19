@@ -1,16 +1,16 @@
 'use client'
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard } from 'lucide-react'
+import { LayoutDashboard, CalendarPlus, CheckSquare, Bell } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
 import AddItemModal from '@/components/modals/AddItemModal'
 import FloatingChat from '@/components/chat/FloatingChat'
 import ClockWidget from '@/components/dashboard/ClockWidget'
 import MiniCalendarWidget from '@/components/dashboard/MiniCalendarWidget'
 import WeatherWidget from '@/components/dashboard/WeatherWidget'
-import RSSFeedWidget from '@/components/dashboard/RSSFeedWidget'
+import AllItemsWidget from '@/components/dashboard/AllItemsWidget'
 import PomodoroWidget from '@/components/dashboard/PomodoroWidget'
-import TodayTasksWidget from '@/components/dashboard/TodayTasksWidget'
+import DailyJournalWidget from '@/components/dashboard/DailyJournalWidget'
 import AIBriefWidget from '@/components/dashboard/AIBriefWidget'
 import PWAInstallButton from '@/components/PWAInstallButton'
 import { useItems } from '@/hooks/useItems'
@@ -23,7 +23,12 @@ function BentoCard({ children, className = '', style = {} }: {
   return (
     <div
       className={`rounded-2xl p-4 overflow-hidden ${className}`}
-      style={{ background: 'var(--card)', border: '1px solid var(--border)', ...style }}
+      style={{
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--card-shadow, none)',
+        ...style,
+      }}
     >
       {children}
     </div>
@@ -58,7 +63,13 @@ export default function DashboardPage() {
   const { items, loading, silentRefresh, addItem, updateItem, deleteItem } = useItems()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const [modalType, setModalType] = useState<'event' | 'task' | 'reminder'>('task')
   const subtitle = useAmbientGreeting(items)
+
+  function openAddModal(type: 'event' | 'task' | 'reminder') {
+    setModalType(type)
+    setModalOpen(true)
+  }
 
   const counts = {
     events:    items.filter(i => i.type === 'event').length,
@@ -94,6 +105,25 @@ export default function DashboardPage() {
             <div className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin ml-1"
               style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
           )}
+          {/* Quick-add buttons — one click to create a task, event, or reminder */}
+          <div className="flex items-center gap-1 ml-4">
+            {([
+              { type: 'task'     as const, icon: CheckSquare,  label: 'Task'     },
+              { type: 'event'    as const, icon: CalendarPlus, label: 'Event'    },
+              { type: 'reminder' as const, icon: Bell,         label: 'Reminder' },
+            ]).map(({ type, icon: Icon, label }) => (
+              <button
+                key={type}
+                onClick={() => openAddModal(type)}
+                className="btn-ghost flex items-center gap-1 px-2 py-1"
+                style={{ fontSize: 11 }}
+                title={`Add ${label}`}
+              >
+                <Icon size={11} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
           <div className="ml-auto">
             <PWAInstallButton />
           </div>
@@ -127,19 +157,19 @@ export default function DashboardPage() {
               <MiniCalendarWidget items={items} />
             </BentoCard>
 
-            {/* RSS Feed — col 4, spans both rows */}
+            {/* Daily Journal — col 4, spans both rows */}
             <BentoCard style={{ gridColumn: '4', gridRow: '1 / 3', display: 'flex', flexDirection: 'column' }}>
-              <RSSFeedWidget />
+              <DailyJournalWidget />
             </BentoCard>
 
             {/* Pomodoro — col 1, row 2 */}
             <BentoCard style={{ gridColumn: '1', gridRow: '2' }}>
-              <PomodoroWidget />
+              <PomodoroWidget items={items} />
             </BentoCard>
 
-            {/* Today's tasks — col 2, row 2 */}
+            {/* All Items — col 2, row 2 */}
             <BentoCard style={{ gridColumn: '2', gridRow: '2', display: 'flex', flexDirection: 'column' }}>
-              <TodayTasksWidget items={items} onUpdateItem={updateItem} />
+              <AllItemsWidget items={items} onUpdateItem={updateItem} />
             </BentoCard>
 
             {/* Weather — col 3, row 2 */}
@@ -154,6 +184,7 @@ export default function DashboardPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onAdd={handleAddItem}
+        defaultType={modalType}
       />
 
       <FloatingChat onRefreshItems={silentRefresh} />

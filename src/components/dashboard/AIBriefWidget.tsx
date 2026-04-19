@@ -1,50 +1,83 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Sparkles, RefreshCw } from 'lucide-react'
 import type { AnyItem } from '@/types'
 
 interface Props { items: AnyItem[] }
 
+// Brief is considered stale after 30 min of being hidden/minimized
+const STALE_MS = 30 * 60 * 1000
+
 export default function AIBriefWidget({ items }: Props) {
   const [brief, setBrief]     = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const fetchedRef             = useRef(false)
-  // Cache per 3-hour block so morning/afternoon/evening each refresh once
-  const cacheKey               = `ai-brief-${new Date().toDateString()}-${Math.floor(new Date().getHours() / 3)}`
+  const loadingRef             = useRef(false)
+  const initialFetchDone       = useRef(false)
+  const itemsRef               = useRef<AnyItem[]>(items)
 
-  async function fetchBrief(force = false) {
-    if (loading) return
+  // Keep itemsRef in sync without triggering effects
+  useEffect(() => { itemsRef.current = items }, [items])
+
+  const getCacheKey = () =>
+    `ai-brief-${new Date().toDateString()}-${Math.floor(new Date().getHours() / 3)}`
+
+  const fetchBrief = useCallback(async (force = false) => {
+    if (loadingRef.current) return
+    const key = getCacheKey()
     if (!force) {
-      const cached = sessionStorage.getItem(cacheKey)
+      const cached = sessionStorage.getItem(key)
       if (cached) { setBrief(cached); return }
     }
+    if (itemsRef.current.length === 0) return
+    loadingRef.current = true
     setLoading(true)
     try {
       const res = await fetch('/api/brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({
+          items:    itemsRef.current,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
       })
       const data = await res.json()
       if (data.brief) {
         setBrief(data.brief)
-        sessionStorage.setItem(cacheKey, data.brief)
+        sessionStorage.setItem(key, data.brief)
+        localStorage.setItem('ai-brief-fetched-at', Date.now().toString())
       } else {
         setBrief("Have a great day!")
       }
     } catch {
       setBrief("Couldn't reach the AI — have a great day!")
     } finally {
+      loadingRef.current = false
       setLoading(false)
     }
-  }
+  }, [])
 
+  // Initial fetch — once items are available
   useEffect(() => {
-    if (fetchedRef.current || items.length === 0) return
-    fetchedRef.current = true
+    if (initialFetchDone.current || items.length === 0) return
+    initialFetchDone.current = true
     fetchBrief()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length])
+  }, [items.length, fetchBrief])
+
+  // Smart refresh: fire when app becomes visible (opened from toolbar, tab switch, etc.)
+  // Only regenerates if the brief is stale (>30 min) or the time-block has changed.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      const ts = localStorage.getItem('ai-brief-fetched-at')
+      const isStale = !ts || Date.now() - Number(ts) > STALE_MS
+      // force=true when stale so we bypass the sessionStorage cache;
+      // force=false when fresh — will use cached value if same time-block, else refetch
+      fetchBrief(isStale)
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [fetchBrief])
 
   return (
     <div className="flex flex-col h-full">
