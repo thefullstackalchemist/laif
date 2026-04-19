@@ -1,11 +1,10 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { WebNotification } from '@/app/api/notifications/route'
 
 export type { WebNotification }
 
-const POLL_INTERVAL  = 20_000       // 20 seconds
-const LS_KEY         = 'notif-last-checked'
+const LS_KEY = 'notif-last-checked'
 
 function getLastChecked(): number {
   if (typeof localStorage === 'undefined') return 0
@@ -19,7 +18,6 @@ function setLastChecked(ts: number) {
 export function useWebNotifications() {
   const [toasts, setToasts] = useState<WebNotification[]>([])
   const [unread, setUnread] = useState(0)
-  const intervalRef          = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const dismiss = useCallback((key: string) => {
     setToasts(prev => prev.filter(t => t.key !== key))
@@ -58,19 +56,8 @@ export function useWebNotifications() {
     }
   }, [])
 
-  // Poll on mount and on interval
-  useEffect(() => {
-    poll()
-    intervalRef.current = setInterval(poll, POLL_INTERVAL)
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [poll])
-
-  // Poll immediately when tab regains focus
-  useEffect(() => {
-    const handler = () => { if (document.visibilityState === 'visible') poll() }
-    document.addEventListener('visibilitychange', handler)
-    return () => document.removeEventListener('visibilitychange', handler)
-  }, [poll])
+  // TODO: Replace polling with Firebase push notifications
+  // Polling disabled — was exhausting Vercel function calls (every 20s per tab)
 
   return { toasts, unread, dismiss, clearUnread: () => setUnread(0) }
 }
