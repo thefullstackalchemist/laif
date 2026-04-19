@@ -1,4 +1,5 @@
 'use client'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -144,7 +145,9 @@ export default function Sidebar({ collapsed, onToggle, currentView, onViewChange
         </Link>
 
         {/* Notes filesystem tree — lives inside the scrollable nav so it gets full remaining height */}
-        <NotesSection collapsed={collapsed} />
+        <Suspense fallback={null}>
+          <NotesSection collapsed={collapsed} />
+        </Suspense>
       </nav>
 
       {/* Umbrellas */}
