@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Sidebar from '@/components/layout/Sidebar'
 import AddMemoryBar from '@/components/memories/AddMemoryBar'
 import MemoryRow, { isDone, getNextStatus } from '@/components/memories/MemoryRow'
 import { TYPE_CONFIG } from '@/components/memories/typeConfig'
@@ -16,8 +15,6 @@ type ViewMode = 'queue' | 'type'
 
 export default function MemoriesPage() {
   const { refetch: refetchItems } = useItems()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [calView, setCalView]     = useState<CalView>('month')
   const [memories, setMemories]   = useState<Memory[]>([])
   const [loading, setLoading]     = useState(true)
   const [adding, setAdding]       = useState(false)
@@ -143,17 +140,8 @@ export default function MemoriesPage() {
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(c => !c)}
-        currentView={calView}
-        onViewChange={setCalView}
-        counts={{ events: 0, tasks: 0, reminders: 0 }}
-        onAddItem={() => {}}
-      />
-
-      <main className="flex-1 flex flex-col overflow-hidden">
+    <>
+    <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div
           className="flex-shrink-0 px-6 py-3 flex items-center gap-3"
@@ -319,8 +307,7 @@ export default function MemoriesPage() {
           ))}
         </div>
       </main>
-
-      <FloatingChat onRefreshItems={refetchItems} />
-    </div>
+    <FloatingChat onRefreshItems={refetchItems} />
+    </>
   )
 }

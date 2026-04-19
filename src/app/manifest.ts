@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Manage events, tasks, reminders and notes — all in one premium workspace.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0b0b13',
-    theme_color: '#6929D4',
+    background_color: '#f4f6fb',
+    theme_color: '#6366f1',
     orientation: 'any',
     icons: [
       { src: '/logo_new.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

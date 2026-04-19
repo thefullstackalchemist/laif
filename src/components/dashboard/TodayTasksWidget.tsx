@@ -1,5 +1,6 @@
 'use client'
-import { CheckCircle2, Circle, CheckSquare } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { CheckCircle2, Circle, CheckSquare, Plus } from 'lucide-react'
 import { isToday } from 'date-fns'
 import type { AnyItem, Task } from '@/types'
 import { ITEM_COLORS } from '@/lib/utils'
@@ -7,9 +8,14 @@ import { ITEM_COLORS } from '@/lib/utils'
 interface Props {
   items: AnyItem[]
   onUpdateItem?: (type: AnyItem['type'], id: string, data: Partial<AnyItem>) => void
+  onAddItem?: (type: AnyItem['type'], data: Record<string, unknown>) => Promise<void>
 }
 
-export default function TodayTasksWidget({ items, onUpdateItem }: Props) {
+export default function TodayTasksWidget({ items, onUpdateItem, onAddItem }: Props) {
+  const [quickInput, setQuickInput] = useState('')
+  const [adding, setAdding] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
   const tasks = (items.filter(i => {
     if (i.type !== 'task') return false
     const d = (i as Task).dueDate
@@ -28,6 +34,21 @@ export default function TodayTasksWidget({ items, onUpdateItem }: Props) {
   function toggle(task: Task) {
     if (!onUpdateItem || !task._id) return
     onUpdateItem('task', task._id, { status: task.status === 'done' ? 'todo' : 'done' } as Partial<AnyItem>)
+  }
+
+  async function handleQuickAdd(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return
+    const title = quickInput.trim()
+    if (!title || !onAddItem) return
+    setAdding(true)
+    try {
+      const today = new Date()
+      today.setHours(23, 59, 0, 0)
+      await onAddItem('task', { title, priority: 'medium', status: 'todo', dueDate: today.toISOString() })
+      setQuickInput('')
+    } finally {
+      setAdding(false)
+    }
   }
 
   return (
@@ -58,7 +79,7 @@ export default function TodayTasksWidget({ items, onUpdateItem }: Props) {
       )}
 
       {/* Task list */}
-      <div className="flex-1 overflow-y-auto space-y-1">
+      <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 py-4">
             <CheckCircle2 size={22} style={{ color: 'var(--text-3)' }} />
@@ -102,6 +123,23 @@ export default function TodayTasksWidget({ items, onUpdateItem }: Props) {
           })
         )}
       </div>
+
+      {/* Inline quick-add */}
+      {onAddItem && (
+        <div className="flex-shrink-0 mt-2 flex items-center gap-1.5">
+          <Plus size={11} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+          <input
+            ref={inputRef}
+            value={quickInput}
+            onChange={e => setQuickInput(e.target.value)}
+            onKeyDown={handleQuickAdd}
+            disabled={adding}
+            placeholder="Add task… press Enter"
+            className="flex-1 bg-transparent text-xs outline-none placeholder:opacity-40"
+            style={{ color: 'var(--text-2)', caretColor: 'var(--accent)' }}
+          />
+        </div>
+      )}
     </div>
   )
 }

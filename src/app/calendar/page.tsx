@@ -1,25 +1,31 @@
 'use client'
-import { useState } from 'react'
-import Sidebar from '@/components/layout/Sidebar'
+import { Suspense, useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import CalendarView, { type CalView } from '@/components/calendar/CalendarView'
 import AddItemModal from '@/components/modals/AddItemModal'
 import FloatingChat from '@/components/chat/FloatingChat'
 import { useItems } from '@/hooks/useItems'
 import type { AnyItem } from '@/types'
 
-export default function CalendarPage() {
-  const { items, loading, refetch, silentRefresh, addItem, updateItem, deleteItem } = useItems()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [view, setView] = useState<CalView>('agenda')
+const VALID_VIEWS: CalView[] = ['agenda', 'month', 'week', 'day']
+
+// useSearchParams must live inside a Suspense boundary
+function CalendarContent() {
+  const { items, loading, silentRefresh, addItem, updateItem, deleteItem } = useItems()
+  const searchParams = useSearchParams()
+  const paramView    = searchParams.get('view') as CalView | null
+
+  const [view, setView]         = useState<CalView>(
+    paramView && VALID_VIEWS.includes(paramView) ? paramView : 'month'
+  )
   const [modalOpen, setModalOpen] = useState(false)
   const [dragStart, setDragStart] = useState<string | undefined>()
-  const [dragEnd, setDragEnd]   = useState<string | undefined>()
+  const [dragEnd,   setDragEnd]   = useState<string | undefined>()
 
-  const counts = {
-    events:    items.filter(i => i.type === 'event').length,
-    tasks:     items.filter(i => i.type === 'task').length,
-    reminders: items.filter(i => i.type === 'reminder').length,
-  }
+  // Sync view when URL param changes (same-route navigation from dock)
+  useEffect(() => {
+    if (paramView && VALID_VIEWS.includes(paramView)) setView(paramView)
+  }, [paramView])
 
   async function handleAddItem(type: AnyItem['type'], data: Record<string, unknown>) {
     await addItem(type, data as Parameters<typeof addItem>[1])
@@ -37,16 +43,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(c => !c)}
-        currentView={view}
-        onViewChange={setView}
-        counts={counts}
-        onAddItem={() => { setDragStart(undefined); setDragEnd(undefined); setModalOpen(true) }}
-      />
-
+    <>
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <CalendarView
           view={view}
@@ -59,7 +56,6 @@ export default function CalendarPage() {
           onDeleteItem={deleteItem}
         />
       </main>
-
       <AddItemModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -67,8 +63,15 @@ export default function CalendarPage() {
         defaultStart={dragStart}
         defaultEnd={dragEnd}
       />
-
       <FloatingChat onRefreshItems={silentRefresh} />
-    </div>
+    </>
+  )
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={null}>
+      <CalendarContent />
+    </Suspense>
   )
 }

@@ -27,6 +27,15 @@ export function useItems() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
+  // Refresh data whenever the app becomes visible (user opens from toolbar / switches back)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchAll(true)
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [fetchAll])
+
   const addItem = useCallback(async (type: AnyItem['type'], data: Partial<CalendarEvent | Task | Reminder>) => {
     const endpoint = type === 'event' ? '/api/events' : type === 'task' ? '/api/tasks' : '/api/reminders'
     const res = await fetch(endpoint, {

@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { Umbrella, Settings2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import Sidebar from '@/components/layout/Sidebar'
 import FloatingChat from '@/components/chat/FloatingChat'
 import UmbrellaSettings from '@/components/umbrellas/UmbrellaSettings'
 import TopBarActions from '@/components/layout/TopBarActions'
@@ -15,22 +14,10 @@ const SECTIONS = [
 type SectionId = typeof SECTIONS[number]['id']
 
 export default function SettingsPage() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [calView, setCalView]                   = useState<CalView>('month')
-  const [active, setActive]                     = useState<SectionId>('umbrellas')
-
-  const counts = { events: 0, tasks: 0, reminders: 0 }
+  const [active, setActive] = useState<SectionId>('umbrellas')
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(c => !c)}
-        currentView={calView}
-        onViewChange={setCalView}
-        counts={counts}
-        onAddItem={() => {}}
-      />
+    <div className="flex flex-1 overflow-hidden">
 
       {/* Settings submenu */}
       <div
@@ -86,4 +73,5 @@ export default function SettingsPage() {
       <FloatingChat onRefreshItems={() => {}} />
     </div>
   )
+
 }

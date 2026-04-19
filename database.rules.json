@@ -1,0 +1,9 @@
+{
+  "rules": {
+    "web-notifications": {
+      ".indexOn": ["createdAt"],
+      ".read":  true,
+      ".write": true
+    }
+  }
+}

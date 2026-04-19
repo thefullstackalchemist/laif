@@ -9,11 +9,11 @@ const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
 })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
+  const [theme, setTheme] = useState<Theme>('light')
 
   useEffect(() => {
     const stored = localStorage.getItem('pim-theme') as Theme | null
-    const initial = stored ?? 'dark'
+    const initial = stored ?? 'light'
     setTheme(initial)
     document.documentElement.setAttribute('data-theme', initial)
   }, [])

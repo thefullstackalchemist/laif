@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import FaviconSwitcher from "@/components/FaviconSwitcher";
 import NotificationCenter from "@/components/NotificationCenter";
+import AppShell from "@/components/layout/AppShell";
 
 const nunito = localFont({
   src: [
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <FaviconSwitcher />
-          {children}
+          <AppShell>{children}</AppShell>
           <NotificationCenter />
         </ThemeProvider>
       </body>

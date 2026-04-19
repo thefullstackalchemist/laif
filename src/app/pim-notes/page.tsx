@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import Sidebar from '@/components/layout/Sidebar'
 import FloatingChat from '@/components/chat/FloatingChat'
 import { useItems } from '@/hooks/useItems'
 import type { CalView } from '@/components/calendar/CalendarView'
@@ -55,8 +54,6 @@ function PimNotesInner() {
   const dateParam      = searchParams.get('date')
 
   const { silentRefresh } = useItems()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [calView, setCalView]                   = useState<CalView>('month')
 
   // ── Folder data ──────────────────────────────────────────────────────────
   const [folders, setFolders] = useState<FsFolder[]>([])
@@ -303,30 +300,22 @@ function PimNotesInner() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(c => !c)}
-        currentView={calView}
-        onViewChange={setCalView}
-        counts={{ events: 0, tasks: 0, reminders: 0 }}
-        onAddItem={() => {}}
-      />
-
-      <main className="flex-1 flex overflow-hidden">
+    <>
+    <main className="flex-1 flex overflow-hidden gap-2 h-full p-3">
 
         {/* ── Left panel: folder browser ──────────────────────────────────── */}
         <div
-          className="flex-shrink-0 flex flex-col overflow-hidden"
+          className="flex-shrink-0 flex flex-col overflow-hidden rounded-2xl"
           style={{
             width: 260,
-            borderRight: '1px solid var(--border)',
-            background: 'var(--surface)',
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
           }}
         >
           {/* Panel header */}
           <div
-            className="flex items-center gap-2 px-3 py-2.5 flex-shrink-0"
+            className="flex items-center gap-2 px-3 py-2.5 flex-shrink-0 rounded-t-2xl"
             style={{ borderBottom: '1px solid var(--border)' }}
           >
             {isJournal
@@ -580,12 +569,19 @@ function PimNotesInner() {
 
         </div>
 
-        {/* ── Editor area ──────────────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* ── Editor panel ─────────────────────────────────────────────────── */}
+        <div
+          className="flex-1 flex flex-col overflow-hidden rounded-2xl"
+          style={{
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          }}
+        >
           {/* Editor header — breadcrumbs */}
           <div
             className="flex-shrink-0 flex items-center gap-1.5 px-5 py-2.5 min-w-0"
-            style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}
+            style={{ borderBottom: '1px solid var(--border)' }}
           >
             {/* Breadcrumb trail */}
             <nav className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
@@ -643,7 +639,7 @@ function PimNotesInner() {
           </div>
 
           {/* Editor body */}
-          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: 'var(--bg)', padding: '24px' }}>
+          <div className="flex-1 flex flex-col overflow-hidden" style={{ padding: '16px' }}>
 
             {/* ── Journal ── */}
             {isJournal && (
@@ -726,9 +722,8 @@ function PimNotesInner() {
           </div>
         </div>
       </main>
-
-      <FloatingChat onRefreshItems={silentRefresh} />
-    </div>
+    <FloatingChat onRefreshItems={silentRefresh} />
+    </>
   )
 }
 

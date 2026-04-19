@@ -4,7 +4,6 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Plus, Search, Phone, Mail, Building2, MapPin, Tag, X, Trash2, Copy, Check } from 'lucide-react'
 import TopBarActions from '@/components/layout/TopBarActions'
-import Sidebar from '@/components/layout/Sidebar'
 import FloatingChat from '@/components/chat/FloatingChat'
 import { useItems } from '@/hooks/useItems'
 import type { Contact } from '@/types'
@@ -252,8 +251,6 @@ function ContactsInner() {
   const { refetch: refetchItems } = useItems()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [calView, setCalView] = useState<CalView>('month')
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -329,17 +326,8 @@ function ContactsInner() {
   }, {})
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(c => !c)}
-        currentView={calView}
-        onViewChange={setCalView}
-        counts={{ events: 0, tasks: 0, reminders: 0 }}
-        onAddItem={() => {}}
-      />
-
-      <main className="flex-1 flex flex-col overflow-hidden">
+    <>
+    <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex-shrink-0 px-6 py-4 flex items-center gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-dim)', color: ACCENT }}>
@@ -419,9 +407,8 @@ function ContactsInner() {
           />
         )}
       </AnimatePresence>
-
-      <FloatingChat onRefreshItems={refetchItems} />
-    </div>
+    <FloatingChat onRefreshItems={refetchItems} />
+    </>
   )
 }
 
