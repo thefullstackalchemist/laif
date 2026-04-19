@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { Calendar, CheckSquare, Bell, CheckCircle2, Circle, List } from 'lucide-react'
+import Link from 'next/link'
+import { Calendar, CheckSquare, Bell, CheckCircle2, Circle, List, ArrowUpRight } from 'lucide-react'
 import { isToday, isTomorrow, isPast, format, isThisYear } from 'date-fns'
 import type { AnyItem, CalendarEvent, Task, Reminder } from '@/types'
 import { ITEM_COLORS } from '@/lib/utils'
@@ -86,6 +87,9 @@ export default function AllItemsWidget({ items, onUpdateItem }: Props) {
         <span className="ml-auto text-xs tabular-nums" style={{ color: 'var(--text-3)' }}>
           {filtered.length}
         </span>
+        <Link href="/calendar?view=agenda" className="btn-ghost p-0.5 ml-1" title="Open Agenda">
+          <ArrowUpRight size={12} style={{ color: 'var(--text-3)' }} />
+        </Link>
       </div>
 
       {/* Filter tabs */}

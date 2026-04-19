@@ -1,7 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameMonth, isSameDay } from 'date-fns'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react'
+import Link from 'next/link'
 import type { AnyItem } from '@/types'
 import { getItemDate } from '@/lib/utils'
 
@@ -41,6 +42,9 @@ export default function MiniCalendarWidget({ items }: Props) {
           <button onClick={() => setMonth(m => addMonths(m, 1))} className="btn-ghost p-1">
             <ChevronRight size={13} />
           </button>
+          <Link href="/calendar" className="btn-ghost p-1" title="Open Calendar">
+            <ArrowUpRight size={13} style={{ color: 'var(--text-3)' }} />
+          </Link>
         </div>
       </div>
 
