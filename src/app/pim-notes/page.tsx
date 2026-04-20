@@ -1,18 +1,11 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import FloatingChat from '@/components/chat/FloatingChat'
 import { useItems } from '@/hooks/useItems'
-import type { CalView } from '@/components/calendar/CalendarView'
 import {
-  format, addMonths, subMonths, startOfMonth, endOfMonth,
-  eachDayOfInterval, isToday, isSameMonth, parseISO,
-  startOfWeek, endOfWeek,
-} from 'date-fns'
-import {
-  BookOpen, Folder, FolderPlus, FilePlus, FileText, ChevronLeft,
-  ChevronRight, Trash2, X, Check, Pencil, GitBranch, Loader2, PenLine,
+  Folder, FolderPlus, FilePlus, FileText,
+  ChevronRight, ChevronDown, Trash2, X, Check, Pencil, GitBranch, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -26,7 +19,7 @@ const MermaidEditor = dynamic(
   { ssr: false, loading: () => <div style={{ color: 'var(--text-3)', fontSize: 14 }}>Loading diagram…</div> }
 )
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface FsFolder {
   _id:    string
@@ -45,166 +38,182 @@ interface FsNote {
 
 const AUTOSAVE_MS = 1500
 
-// ─── Main page (wrapped in Suspense for useSearchParams) ─────────────────────
+// ─── Main component ────────────────────────────────────────────────────────────
 
 function PimNotesInner() {
-  const router         = useRouter()
-  const searchParams   = useSearchParams()
-  const folderId       = searchParams.get('folder') ?? 'root'
-  const dateParam      = searchParams.get('date')
-
   const { silentRefresh } = useItems()
 
-  // ── Folder data ──────────────────────────────────────────────────────────
-  const [folders, setFolders] = useState<FsFolder[]>([])
-  const [notes,   setNotes]   = useState<FsNote[]>([])
-  const currentFolder = folders.find(f => f._id === folderId) ?? null
+  // ── Data ──────────────────────────────────────────────────────────────────
+  const [folders,     setFolders]     = useState<FsFolder[]>([])
+  const [folderNotes, setFolderNotes] = useState<Record<string, FsNote[]>>({})
 
-  // ── Note editing ─────────────────────────────────────────────────────────
-  const [activeNote, setActiveNote]   = useState<FsNote | null>(null)
-  const [noteContent, setNoteContent] = useState('')
-  const [saving, setSaving]           = useState(false)
-  const [dirty,  setDirty]            = useState(false)
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // ── Sidebar tree ───────────────────────────────────────────────────────────
+  const [expanded,       setExpanded]       = useState<Set<string>>(new Set(['root']))
+  const [loadingFolders, setLoadingFolders] = useState<Set<string>>(new Set())
+  const loadedRef = useRef<Set<string>>(new Set())
 
-  // ── Journal calendar ─────────────────────────────────────────────────────
-  const [calMonth, setCalMonth]       = useState(new Date())
-  const [journalDate, setJournalDate] = useState<string>(
-    dateParam ?? format(new Date(), 'yyyy-MM-dd')
-  )
-  const [loadingJournal, setLoadingJournal] = useState(false)
-  const [writingJournal, setWritingJournal] = useState(false)
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+  const [tabs,        setTabs]        = useState<FsNote[]>([])
+  const [activeTabId, setActiveTabId] = useState<string | null>(null)
 
-  // ── New folder dialog ────────────────────────────────────────────────────
-  const [newFolderName, setNewFolderName] = useState('')
-  const [creatingFolder, setCreatingFolder] = useState(false)
+  // ── Per-tab content & save state ───────────────────────────────────────────
+  const [tabContents, setTabContents] = useState<Record<string, string>>({})
+  const [savingTabs,  setSavingTabs]  = useState<Set<string>>(new Set())
+  const [dirtyTabs,   setDirtyTabs]   = useState<Set<string>>(new Set())
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
-  // ── Rename / delete folder ────────────────────────────────────────────────
-  const [renamingId,   setRenamingId]   = useState<string | null>(null)
-  const [renameValue,  setRenameValue]  = useState('')
+  // ── Inline creation ────────────────────────────────────────────────────────
+  const [creatingIn,   setCreatingIn]   = useState<string | null>(null)
+  const [creatingKind, setCreatingKind] = useState<'note' | 'flow' | 'folder' | null>(null)
+  const [createName,   setCreateName]   = useState('')
 
-  // ── New note dialog ──────────────────────────────────────────────────────
-  const [newNoteName, setNewNoteName] = useState('')
-  const [creatingNote, setCreatingNote] = useState(false)
+  // ── Rename ─────────────────────────────────────────────────────────────────
+  const [renamingId,  setRenamingId]  = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
-  // ── New flow dialog ───────────────────────────────────────────────────────
-  const [newFlowName, setNewFlowName] = useState('')
-  const [creatingFlow, setCreatingFlow] = useState(false)
+  // ── Delete confirmations ───────────────────────────────────────────────────
+  const [confirmNote,      setConfirmNote]      = useState<FsNote | null>(null)   // note pending delete
+  const [confirmFolder,    setConfirmFolder]    = useState<FsFolder | null>(null) // folder pending delete
+  const [folderConfirmVal, setFolderConfirmVal] = useState('')                    // typed name input
 
-  const isJournal = folderId === 'journal'
-  const isRoot    = folderId === 'root'
-
-  // ── Load folders ─────────────────────────────────────────────────────────
+  // ── Load all folders on mount ──────────────────────────────────────────────
   useEffect(() => {
     fetch('/api/fs-folders')
       .then(r => r.json())
-      .then(setFolders)
-      .catch(() => {})
-  }, [])
-
-  // ── Load notes when folder changes ───────────────────────────────────────
-  useEffect(() => {
-    setNotes([])
-    setActiveNote(null)
-    setNoteContent('')
-    setDirty(false)
-    fetch(`/api/fs-notes?parent=${folderId}`)
-      .then(r => r.json())
-      .then(setNotes)
-      .catch(() => {})
-  }, [folderId])
-
-  // ── Load journal note when date changes ──────────────────────────────────
-  useEffect(() => {
-    if (!isJournal) return
-    // Clear any pending auto-save from the previous date to prevent writing
-    // stale content to the wrong date
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    setNoteContent('')
-    setDirty(false)
-    setActiveNote(null)
-    setWritingJournal(false)
-    setLoadingJournal(true)
-
-    fetch(`/api/fs-notes?parent=journal&date=${journalDate}`)
-      .then(r => r.json())
-      .then((data: FsNote[]) => {
-        if (data.length > 0) {
-          setActiveNote(data[0])
-          setNoteContent(data[0].content ?? '')
-        }
+      .then((data: FsFolder[]) => {
+        setFolders(data)
+        loadNotesForFolder('root')
       })
       .catch(() => {})
-      .finally(() => setLoadingJournal(false))
-  }, [isJournal, journalDate])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // ── Auto-save ─────────────────────────────────────────────────────────────
-  const save = useCallback(async (json: string) => {
-    setSaving(true)
+  // ── Load notes for a folder (lazy, once) ──────────────────────────────────
+  async function loadNotesForFolder(folderId: string) {
+    if (loadedRef.current.has(folderId)) return
+    loadedRef.current.add(folderId)
+    setLoadingFolders(prev => { const n = new Set(prev); n.add(folderId); return n })
     try {
-      if (isJournal) {
-        if (activeNote) {
-          await fetch(`/api/fs-notes/${activeNote._id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: json }),
-          })
-        } else {
-          // Create new journal note for this date
-          const res = await fetch('/api/fs-notes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: journalDate,
-              parent: 'journal',
-              content: json,
-              date: journalDate,
-            }),
-          })
-          const created = await res.json()
-          setActiveNote(created)
-          setNotes(prev => [...prev, created])
-        }
-      } else if (activeNote) {
-        await fetch(`/api/fs-notes/${activeNote._id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: json }),
-        })
-        setNotes(prev => prev.map(n => n._id === activeNote._id ? { ...n, content: json } : n))
-      }
-      setDirty(false)
-    } finally {
-      setSaving(false)
+      const res   = await fetch(`/api/fs-notes?parent=${folderId}`)
+      const notes: FsNote[] = await res.json()
+      setFolderNotes(prev => ({ ...prev, [folderId]: notes }))
+    } catch {
+      loadedRef.current.delete(folderId)
     }
-  }, [isJournal, activeNote, journalDate])
-
-  function handleContentChange(json: string) {
-    setNoteContent(json)
-    setDirty(true)
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => save(json), AUTOSAVE_MS)
+    setLoadingFolders(prev => { const n = new Set(prev); n.delete(folderId); return n })
   }
 
-  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current) }, [])
-
-  // ── Create folder ─────────────────────────────────────────────────────────
-  async function submitNewFolder() {
-    if (!newFolderName.trim()) return
-    setCreatingFolder(true)
-    const res = await fetch('/api/fs-folders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newFolderName.trim(), parent: isRoot ? 'root' : folderId }),
+  // ── Expand / collapse ──────────────────────────────────────────────────────
+  function toggleFolder(folderId: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(folderId)) {
+        next.delete(folderId)
+      } else {
+        next.add(folderId)
+        loadNotesForFolder(folderId)
+      }
+      return next
     })
-    const folder = await res.json()
-    setFolders(prev => [...prev, folder])
-    setNewFolderName('')
-    setCreatingFolder(false)
-    router.replace(`/pim-notes?folder=${folderId}`)
   }
 
-  // ── Rename folder ─────────────────────────────────────────────────────────
+  // ── Open note in tab ───────────────────────────────────────────────────────
+  function openNote(note: FsNote) {
+    setTabs(prev =>
+      prev.some(t => t._id === note._id) ? prev : [...prev, note]
+    )
+    setActiveTabId(note._id)
+    setTabContents(prev =>
+      note._id in prev ? prev : { ...prev, [note._id]: note.content ?? '' }
+    )
+  }
+
+  // ── Close tab ─────────────────────────────────────────────────────────────
+  function closeTab(id: string, e?: React.MouseEvent) {
+    e?.stopPropagation()
+    setTabs(prev => {
+      const idx  = prev.findIndex(t => t._id === id)
+      if (idx === -1) return prev
+      const next = prev.filter((_, i) => i !== idx)
+      if (activeTabId === id) {
+        setActiveTabId(next[Math.min(idx, next.length - 1)]?._id ?? null)
+      }
+      return next
+    })
+  }
+
+  // ── Auto-save ──────────────────────────────────────────────────────────────
+  const save = useCallback(async (tabId: string, content: string) => {
+    setSavingTabs(prev => { const n = new Set(prev); n.add(tabId); return n })
+    try {
+      await fetch(`/api/fs-notes/${tabId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      })
+      setFolderNotes(prev => {
+        const next = { ...prev }
+        for (const fid of Object.keys(next)) {
+          next[fid] = next[fid].map(n => n._id === tabId ? { ...n, content } : n)
+        }
+        return next
+      })
+      setDirtyTabs(prev => { const n = new Set(prev); n.delete(tabId); return n })
+    } finally {
+      setSavingTabs(prev => { const n = new Set(prev); n.delete(tabId); return n })
+    }
+  }, [])
+
+  function handleContentChange(tabId: string, content: string) {
+    setTabContents(prev => ({ ...prev, [tabId]: content }))
+    setDirtyTabs(prev => { const n = new Set(prev); n.add(tabId); return n })
+    if (saveTimers.current[tabId]) clearTimeout(saveTimers.current[tabId])
+    saveTimers.current[tabId] = setTimeout(() => save(tabId, content), AUTOSAVE_MS)
+  }
+
+  useEffect(() => () => {
+    Object.values(saveTimers.current).forEach(clearTimeout)
+  }, [])
+
+  // ── CRUD ───────────────────────────────────────────────────────────────────
+  function startCreate(folderId: string, kind: 'note' | 'flow' | 'folder') {
+    setCreatingIn(folderId)
+    setCreatingKind(kind)
+    setCreateName('')
+    setExpanded(prev => { const n = new Set(prev); n.add(folderId); return n })
+  }
+
+  async function submitCreate() {
+    if (!createName.trim() || !creatingIn || !creatingKind) return
+    const name = createName.trim()
+
+    if (creatingKind === 'folder') {
+      const res    = await fetch('/api/fs-folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, parent: creatingIn }),
+      })
+      const folder: FsFolder = await res.json()
+      setFolders(prev => [...prev, folder])
+    } else {
+      const res  = await fetch('/api/fs-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, parent: creatingIn, content: '', type: creatingKind }),
+      })
+      const note: FsNote = await res.json()
+      setFolderNotes(prev => ({
+        ...prev,
+        [creatingIn]: [note, ...(prev[creatingIn] ?? [])],
+      }))
+      openNote(note)
+    }
+
+    setCreatingIn(null)
+    setCreatingKind(null)
+    setCreateName('')
+  }
+
   async function submitRename(id: string) {
     const name = renameValue.trim()
     if (!name) { setRenamingId(null); return }
@@ -217,359 +226,241 @@ function PimNotesInner() {
     setRenamingId(null)
   }
 
-  // ── Delete folder (recursive) ─────────────────────────────────────────────
-  async function deleteFolder(id: string) {
+  async function confirmDeleteFolder() {
+    if (!confirmFolder) return
+    const id = confirmFolder._id
     await fetch(`/api/fs-folders/${id}`, { method: 'DELETE' })
-    // Remove folder + all descendants from local state
     const allIds = new Set<string>()
-    function collect(fid: string) {
+    const collect = (fid: string) => {
       allIds.add(fid)
       folders.filter(f => f.parent === fid).forEach(f => collect(f._id))
     }
     collect(id)
     setFolders(prev => prev.filter(f => !allIds.has(f._id)))
-    // If we're inside the deleted tree, go to root
-    if (allIds.has(folderId)) router.push('/pim-notes?folder=root')
-  }
-
-  // ── Create note ───────────────────────────────────────────────────────────
-  async function submitNewNote() {
-    if (!newNoteName.trim()) return
-    setCreatingNote(true)
-    const res = await fetch('/api/fs-notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newNoteName.trim(), parent: folderId, content: '' }),
+    setFolderNotes(prev => {
+      const next = { ...prev }
+      allIds.forEach(fid => delete next[fid])
+      return next
     })
-    const note = await res.json()
-    setNotes(prev => [note, ...prev])
-    setNewNoteName('')
-    setCreatingNote(false)
-    setActiveNote(note)
-    setNoteContent('')
+    setTabs(prev => prev.filter(t => !allIds.has(t.parent)))
+    setConfirmFolder(null)
+    setFolderConfirmVal('')
   }
 
-  // ── Create flow ───────────────────────────────────────────────────────────
-  async function submitNewFlow() {
-    if (!newFlowName.trim()) return
-    const res = await fetch('/api/fs-notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newFlowName.trim(), parent: folderId, content: '', type: 'flow' }),
-    })
-    const flow = await res.json()
-    setNotes(prev => [flow, ...prev])
-    setNewFlowName('')
-    setCreatingFlow(false)
-    setActiveNote(flow)
-    setNoteContent('')
+  async function confirmDeleteNote() {
+    if (!confirmNote) return
+    await fetch(`/api/fs-notes/${confirmNote._id}`, { method: 'DELETE' })
+    setFolderNotes(prev => ({
+      ...prev,
+      [confirmNote.parent]: (prev[confirmNote.parent] ?? []).filter(n => n._id !== confirmNote._id),
+    }))
+    closeTab(confirmNote._id)
+    setConfirmNote(null)
   }
 
-  // ── Delete note ───────────────────────────────────────────────────────────
-  async function deleteNote(id: string) {
-    await fetch(`/api/fs-notes/${id}`, { method: 'DELETE' })
-    setNotes(prev => prev.filter(n => n._id !== id))
-    if (activeNote?._id === id) { setActiveNote(null); setNoteContent('') }
+  // ── Recursive folder tree ──────────────────────────────────────────────────
+  function renderFolderTree(folder: FsFolder, depth: number): React.ReactNode {
+    const isExpanded  = expanded.has(folder._id)
+    const isLoading   = loadingFolders.has(folder._id)
+    const notes       = folderNotes[folder._id] ?? []
+    const subfolders  = folders.filter(f => f.parent === folder._id)
+    const isProtected = folder._id === 'root'
+    const label       = folder._id === 'root' ? 'Notes' : folder.name
+    const indent      = depth * 10
+
+    return (
+      <div key={folder._id}>
+        {/* Folder row */}
+        <div className="group relative flex items-center" style={{ paddingLeft: indent }}>
+          {renamingId === folder._id ? (
+            <div className="flex items-center gap-1 px-2 py-1 flex-1 min-w-0">
+              <Folder size={12} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+              <input
+                autoFocus
+                value={renameValue}
+                onChange={e => setRenameValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter')  submitRename(folder._id)
+                  if (e.key === 'Escape') setRenamingId(null)
+                }}
+                onBlur={() => submitRename(folder._id)}
+                className="flex-1 text-xs bg-transparent outline-none min-w-0"
+                style={{ color: 'var(--text-1)', borderBottom: '1px solid var(--border-hover)' }}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => toggleFolder(folder._id)}
+              className="sidebar-item flex-1 min-w-0 pr-20"
+            >
+              {isExpanded
+                ? <ChevronDown  size={11} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                : <ChevronRight size={11} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+              }
+              <Folder
+                size={12}
+                style={{ color: isExpanded ? 'var(--accent-light)' : 'var(--text-3)', flexShrink: 0 }}
+              />
+              <span className="truncate text-xs font-medium flex-1 text-left">{label}</span>
+              {isLoading && (
+                <Loader2 size={10} className="animate-spin flex-shrink-0" style={{ color: 'var(--text-3)' }} />
+              )}
+            </button>
+          )}
+
+          {renamingId !== folder._id && (
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={e => { e.stopPropagation(); startCreate(folder._id, 'note') }}
+                className="p-1 rounded hover:opacity-80" style={{ color: 'var(--text-3)' }} title="New note"
+              ><FilePlus size={10} /></button>
+              <button
+                onClick={e => { e.stopPropagation(); startCreate(folder._id, 'flow') }}
+                className="p-1 rounded hover:opacity-80" style={{ color: 'var(--text-3)' }} title="New diagram"
+              ><GitBranch size={10} /></button>
+              <button
+                onClick={e => { e.stopPropagation(); startCreate(folder._id, 'folder') }}
+                className="p-1 rounded hover:opacity-80" style={{ color: 'var(--text-3)' }} title="New folder"
+              ><FolderPlus size={10} /></button>
+              {!isProtected && (
+                <>
+                  <button
+                    onClick={e => { e.stopPropagation(); setRenamingId(folder._id); setRenameValue(folder.name) }}
+                    className="p-1 rounded hover:opacity-80" style={{ color: 'var(--text-3)' }} title="Rename"
+                  ><Pencil size={10} /></button>
+                  <button
+                    onClick={e => { e.stopPropagation(); setConfirmFolder(folder); setFolderConfirmVal('') }}
+                    className="p-1 rounded hover:opacity-80" style={{ color: 'var(--text-3)' }} title="Delete"
+                  ><Trash2 size={10} /></button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Children */}
+        {isExpanded && (
+          <div>
+            {/* Inline create input */}
+            {creatingIn === folder._id && creatingKind && (
+              <div
+                className="flex items-center gap-1 py-1 px-2"
+                style={{ paddingLeft: (depth + 1) * 10 + 8, borderBottom: '1px solid var(--border)' }}
+              >
+                {creatingKind === 'folder'
+                  ? <FolderPlus size={11} style={{ color: 'var(--accent-light)', flexShrink: 0 }} />
+                  : creatingKind === 'flow'
+                    ? <GitBranch size={11} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                    : <FilePlus  size={11} style={{ color: 'var(--accent)',      flexShrink: 0 }} />}
+                <input
+                  autoFocus
+                  value={createName}
+                  onChange={e => setCreateName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter')  submitCreate()
+                    if (e.key === 'Escape') { setCreatingIn(null); setCreatingKind(null) }
+                  }}
+                  placeholder={
+                    creatingKind === 'folder' ? 'Folder name…' :
+                    creatingKind === 'flow'   ? 'Diagram name…' : 'Note name…'
+                  }
+                  className="flex-1 text-xs bg-transparent outline-none min-w-0"
+                  style={{ color: 'var(--text-1)' }}
+                />
+                <button onClick={submitCreate}>
+                  <Check size={11} style={{ color: 'var(--accent)' }} />
+                </button>
+                <button onClick={() => { setCreatingIn(null); setCreatingKind(null) }}>
+                  <X size={10} style={{ color: 'var(--text-3)' }} />
+                </button>
+              </div>
+            )}
+
+            {/* Sub-folders */}
+            {subfolders.map(sf => renderFolderTree(sf, depth + 1))}
+
+            {/* Notes */}
+            {notes.map(note => (
+              <div
+                key={note._id}
+                className="group relative"
+                style={{ paddingLeft: (depth + 1) * 10 }}
+              >
+                <button
+                  onClick={() => openNote(note)}
+                  className={cn('sidebar-item w-full pr-6', activeTabId === note._id && 'active')}
+                >
+                  {note.type === 'flow'
+                    ? <GitBranch size={11} style={{ flexShrink: 0, color: 'var(--text-3)' }} />
+                    : <FileText  size={11} style={{ flexShrink: 0, color: 'var(--text-3)' }} />
+                  }
+                  <span className="truncate text-xs">{note.name}</span>
+                </button>
+                <button
+                  onClick={() => setConfirmNote(note)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                  style={{ color: 'var(--text-3)' }}
+                  title="Delete"
+                ><Trash2 size={10} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
-  // ── Calendar helpers ──────────────────────────────────────────────────────
-  const journalDates = new Set(notes.filter(n => n.date).map(n => n.date!))
+  // ── Active tab ─────────────────────────────────────────────────────────────
+  const activeNote    = tabs.find(t => t._id === activeTabId) ?? null
+  const activeContent = activeTabId ? (tabContents[activeTabId] ?? '') : ''
+  const isActiveSaving = activeTabId ? savingTabs.has(activeTabId) : false
+  const isActiveDirty  = activeTabId ? dirtyTabs.has(activeTabId) : false
 
-  const calDays = eachDayOfInterval({
-    start: startOfWeek(startOfMonth(calMonth)),
-    end:   endOfWeek(endOfMonth(calMonth)),
-  })
-
-  // ── Subfolders of current folder ─────────────────────────────────────────
-  const subfolders = folders.filter(f => f.parent === folderId)
-
-  // ── Breadcrumb path ───────────────────────────────────────────────────────
-  function getFolderPath(id: string): FsFolder[] {
-    const crumbs: FsFolder[] = []
-    let current: string | null = id
-    while (current) {
-      const f = folders.find(x => x._id === current)
-      if (!f) break
-      crumbs.unshift(f)
-      current = f.parent
-    }
-    return crumbs
-  }
-  const folderPath = getFolderPath(folderId)
+  const rootFolder = folders.find(f => f._id === 'root')
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
-    <main className="flex-1 flex overflow-hidden gap-2 h-full p-3">
+      <main className="flex-1 flex overflow-hidden gap-2 h-full p-3">
 
-        {/* ── Left panel: folder browser ──────────────────────────────────── */}
+        {/* ── Sidebar ─────────────────────────────────────────────────────── */}
         <div
           className="flex-shrink-0 flex flex-col overflow-hidden rounded-2xl"
           style={{
-            width: 260,
+            width: 240,
             background: 'var(--card)',
             border: '1px solid var(--border)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
           }}
         >
-          {/* Panel header */}
           <div
-            className="flex items-center gap-2 px-3 py-2.5 flex-shrink-0 rounded-t-2xl"
+            className="flex items-center gap-1.5 px-3 py-2.5 flex-shrink-0"
             style={{ borderBottom: '1px solid var(--border)' }}
           >
-            {isJournal
-              ? <BookOpen size={13} style={{ color: 'var(--accent-light)', flexShrink: 0 }} />
-              : <Folder size={13} style={{ color: 'var(--accent-light)', flexShrink: 0 }} />
-            }
-            <span className="text-xs font-semibold truncate flex-1" style={{ color: 'var(--text-1)' }}>
-              {currentFolder?.name ?? 'Notes'}
+            <span className="text-xs font-semibold flex-1 tracking-wider" style={{ color: 'var(--text-3)' }}>
+              EXPLORER
             </span>
-
-            {/* Action buttons — icon only */}
-            {!isJournal && (
-              <>
-                <button
-                  onClick={() => { setCreatingNote(true); setCreatingFlow(false); setCreatingFolder(false) }}
-                  className="p-1.5 rounded-md transition-colors hover:opacity-80"
-                  style={{ background: 'var(--accent)', color: 'white' }}
-                  title="New note"
-                >
-                  <FilePlus size={13} />
-                </button>
-                <button
-                  onClick={() => { setCreatingFlow(true); setCreatingNote(false); setCreatingFolder(false) }}
-                  className="p-1.5 rounded-md transition-colors"
-                  style={{ color: 'var(--text-2)', background: 'var(--input-bg)', border: '1px solid var(--border)' }}
-                  title="New diagram"
-                >
-                  <GitBranch size={13} />
-                </button>
-              </>
-            )}
-            {!isJournal && (
-              <button
-                onClick={() => { setCreatingFolder(true); setCreatingNote(false); setCreatingFlow(false) }}
-                className="p-1.5 rounded-md transition-colors"
-                style={{ color: 'var(--text-2)', background: 'var(--input-bg)', border: '1px solid var(--border)' }}
-                title="New folder"
-              >
-                <FolderPlus size={13} />
-              </button>
-            )}
+            <button
+              onClick={() => startCreate('root', 'note')}
+              className="p-1.5 rounded-md transition-colors hover:opacity-80"
+              style={{ background: 'var(--accent)', color: 'white' }}
+              title="New note"
+            ><FilePlus size={12} /></button>
+            <button
+              onClick={() => startCreate('root', 'folder')}
+              className="p-1.5 rounded-md transition-colors"
+              style={{ color: 'var(--text-2)', background: 'var(--input-bg)', border: '1px solid var(--border)' }}
+              title="New folder"
+            ><FolderPlus size={12} /></button>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-
-            {/* ── Inline creation inputs (pinned at top of list) ─────────── */}
-            {creatingNote && (
-              <div className="flex items-center gap-1 px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
-                <FilePlus size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                <input
-                  autoFocus
-                  value={newNoteName}
-                  onChange={e => setNewNoteName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') submitNewNote()
-                    if (e.key === 'Escape') setCreatingNote(false)
-                  }}
-                  placeholder="Note name…"
-                  className="flex-1 text-xs bg-transparent outline-none min-w-0"
-                  style={{ color: 'var(--text-1)' }}
-                />
-                <button onClick={submitNewNote}><Check size={12} style={{ color: 'var(--accent)' }} /></button>
-                <button onClick={() => setCreatingNote(false)}><X size={11} style={{ color: 'var(--text-3)' }} /></button>
-              </div>
-            )}
-            {creatingFlow && (
-              <div className="flex items-center gap-1 px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
-                <GitBranch size={12} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-                <input
-                  autoFocus
-                  value={newFlowName}
-                  onChange={e => setNewFlowName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') submitNewFlow()
-                    if (e.key === 'Escape') setCreatingFlow(false)
-                  }}
-                  placeholder="Diagram name…"
-                  className="flex-1 text-xs bg-transparent outline-none min-w-0"
-                  style={{ color: 'var(--text-1)' }}
-                />
-                <button onClick={submitNewFlow}><Check size={12} style={{ color: 'var(--accent)' }} /></button>
-                <button onClick={() => setCreatingFlow(false)}><X size={11} style={{ color: 'var(--text-3)' }} /></button>
-              </div>
-            )}
-            {creatingFolder && (
-              <div className="flex items-center gap-1 px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
-                <FolderPlus size={12} style={{ color: 'var(--accent-light)', flexShrink: 0 }} />
-                <input
-                  autoFocus
-                  value={newFolderName}
-                  onChange={e => setNewFolderName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') submitNewFolder()
-                    if (e.key === 'Escape') setCreatingFolder(false)
-                  }}
-                  placeholder="Folder name…"
-                  className="flex-1 text-xs bg-transparent outline-none min-w-0"
-                  style={{ color: 'var(--text-1)' }}
-                />
-                <button onClick={submitNewFolder}><Check size={12} style={{ color: 'var(--accent)' }} /></button>
-                <button onClick={() => setCreatingFolder(false)}><X size={11} style={{ color: 'var(--text-3)' }} /></button>
-              </div>
-            )}
-
-            {/* ── Journal: mini calendar ─────────────────────────────────── */}
-            {isJournal && (
-              <div className="px-3 pt-3 pb-2">
-                {/* Month nav */}
-                <div className="flex items-center justify-between mb-2">
-                  <button onClick={() => setCalMonth(m => subMonths(m, 1))} className="btn-ghost p-1">
-                    <ChevronLeft size={13} />
-                  </button>
-                  <span className="text-xs font-medium" style={{ color: 'var(--text-2)' }}>
-                    {format(calMonth, 'MMM yyyy')}
-                  </span>
-                  <button onClick={() => setCalMonth(m => addMonths(m, 1))} className="btn-ghost p-1">
-                    <ChevronRight size={13} />
-                  </button>
-                </div>
-
-                {/* Day headers */}
-                <div className="grid grid-cols-7 mb-1">
-                  {['S','M','T','W','T','F','S'].map((d, i) => (
-                    <div key={i} className="text-center" style={{ fontSize: 10, color: 'var(--text-3)' }}>{d}</div>
-                  ))}
-                </div>
-
-                {/* Days */}
-                <div className="grid grid-cols-7 gap-y-0.5">
-                  {calDays.map(day => {
-                    const ds   = format(day, 'yyyy-MM-dd')
-                    const inMonth = isSameMonth(day, calMonth)
-                    const today   = isToday(day)
-                    const active  = ds === journalDate
-                    const hasEntry = journalDates.has(ds)
-                    return (
-                      <button
-                        key={ds}
-                        onClick={() => setJournalDate(ds)}
-                        className="relative flex flex-col items-center py-0.5 rounded-md transition-colors"
-                        style={{
-                          fontSize: 11,
-                          color: !inMonth ? 'var(--text-3)' : active ? 'white' : 'var(--text-2)',
-                          background: active ? 'var(--accent)' : today && !active ? 'var(--accent-muted)' : 'transparent',
-                          fontWeight: today ? 600 : 400,
-                        }}
-                      >
-                        {format(day, 'd')}
-                        {hasEntry && !active && (
-                          <span
-                            className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                            style={{ background: 'var(--accent)' }}
-                          />
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* ── Subfolders ─────────────────────────────────────────────── */}
-            {subfolders.length > 0 && (
-              <div className="px-2 pt-2">
-                {!isJournal && (
-                  <p className="text-xs px-2 mb-1 font-medium tracking-wider" style={{ color: 'var(--text-3)' }}>FOLDERS</p>
-                )}
-                {subfolders.map(sf => (
-                  <div key={sf._id} className="group relative">
-                    {renamingId === sf._id ? (
-                      <div className="flex items-center gap-1 px-2 py-1">
-                        <Folder size={13} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-                        <input
-                          autoFocus
-                          value={renameValue}
-                          onChange={e => setRenameValue(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter')  submitRename(sf._id)
-                            if (e.key === 'Escape') setRenamingId(null)
-                          }}
-                          onBlur={() => submitRename(sf._id)}
-                          className="flex-1 text-xs bg-transparent outline-none min-w-0"
-                          style={{ color: 'var(--text-1)', borderBottom: '1px solid var(--border-hover)' }}
-                        />
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => router.push(`/pim-notes?folder=${sf._id}`)}
-                        className="sidebar-item w-full pr-14"
-                      >
-                        <Folder size={13} className="flex-shrink-0" />
-                        <span className="truncate text-xs">{sf.name}</span>
-                      </button>
-                    )}
-                    {renamingId !== sf._id && (
-                      <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={e => { e.stopPropagation(); setRenamingId(sf._id); setRenameValue(sf.name) }}
-                          className="p-1 rounded hover:opacity-80"
-                          style={{ color: 'var(--text-3)' }}
-                          title="Rename folder"
-                        >
-                          <Pencil size={11} />
-                        </button>
-                        <button
-                          onClick={e => { e.stopPropagation(); deleteFolder(sf._id) }}
-                          className="p-1 rounded hover:opacity-80"
-                          style={{ color: 'var(--text-3)' }}
-                          title="Delete folder"
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* ── Notes list (non-journal) ───────────────────────────────── */}
-            {!isJournal && (
-              <div className="px-2 pt-2">
-                {notes.length > 0 && (
-                  <p className="text-xs px-2 mb-1 font-medium tracking-wider" style={{ color: 'var(--text-3)' }}>NOTES</p>
-                )}
-                {notes.map(note => (
-                  <div key={note._id} className="group relative">
-                    <button
-                      onClick={() => { setActiveNote(note); setNoteContent(note.content ?? '') }}
-                      className={cn('sidebar-item w-full pr-6', activeNote?._id === note._id && 'active')}
-                    >
-                      {note.type === 'flow'
-                        ? <GitBranch size={12} style={{ flexShrink: 0, color: 'var(--text-3)' }} />
-                        : <FileText  size={12} style={{ flexShrink: 0, color: 'var(--text-3)' }} />
-                      }
-                      <span className="truncate text-xs">{note.name}</span>
-                    </button>
-                    <button
-                      onClick={() => deleteNote(note._id)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
-                      style={{ color: 'var(--text-3)' }}
-                      title="Delete note"
-                    >
-                      <Trash2 size={11} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="flex-1 overflow-y-auto py-1">
+            {rootFolder && renderFolderTree(rootFolder, 0)}
           </div>
-
         </div>
 
-        {/* ── Editor panel ─────────────────────────────────────────────────── */}
+        {/* ── Editor panel ────────────────────────────────────────────────── */}
         <div
           className="flex-1 flex flex-col overflow-hidden rounded-2xl"
           style={{
@@ -578,151 +469,234 @@ function PimNotesInner() {
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
           }}
         >
-          {/* Editor header — breadcrumbs */}
+          {/* Tab bar */}
           <div
-            className="flex-shrink-0 flex items-center gap-1.5 px-5 py-2.5 min-w-0"
-            style={{ borderBottom: '1px solid var(--border)' }}
+            className="flex-shrink-0 flex items-end overflow-x-auto"
+            style={{
+              borderBottom: '1px solid var(--border)',
+              minHeight: 38,
+              paddingTop: 6,
+              paddingLeft: 8,
+              paddingRight: 8,
+              gap: 2,
+            }}
           >
-            {/* Breadcrumb trail */}
-            <nav className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
-              {folderPath.map((f, i) => {
-                const isLast = i === folderPath.length - 1
-                const isLeaf = isLast && !activeNote && !isJournal
+            {tabs.length === 0 ? (
+              <span className="text-xs pb-2 pl-1" style={{ color: 'var(--text-3)' }}>No open files</span>
+            ) : (
+              tabs.map(note => {
+                const isActive = activeTabId === note._id
+                const isDirty  = dirtyTabs.has(note._id)
                 return (
-                  <span key={f._id} className="flex items-center gap-1 min-w-0">
-                    {i > 0 && (
-                      <ChevronRight size={11} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                  <button
+                    key={note._id}
+                    onClick={() => setActiveTabId(note._id)}
+                    className="group/tab flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs transition-colors flex-shrink-0"
+                    style={{
+                      color:        isActive ? 'var(--text-1)' : 'var(--text-3)',
+                      background:   isActive ? 'var(--surface)' : 'transparent',
+                      fontWeight:   isActive ? 500 : 400,
+                      maxWidth:     160,
+                      border:       isActive ? '1px solid var(--border)' : '1px solid transparent',
+                      borderBottom: isActive ? '1px solid var(--surface)' : '1px solid transparent',
+                      marginBottom: isActive ? -1 : 0,
+                    }}
+                  >
+                    <span style={{ flexShrink: 0, color: isActive ? 'var(--accent-light)' : 'var(--text-3)' }}>
+                      {note.type === 'flow' ? <GitBranch size={11} /> : <FileText size={11} />}
+                    </span>
+                    <span className="truncate">{note.name}</span>
+                    {isDirty && (
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
                     )}
-                    <button
-                      onClick={() => router.push(`/pim-notes?folder=${f._id}`)}
-                      className="text-xs truncate hover:underline transition-colors"
-                      style={{
-                        color: isLeaf ? 'var(--text-1)' : 'var(--text-3)',
-                        fontWeight: isLeaf ? 600 : 400,
-                        maxWidth: isLeaf ? 200 : 100,
-                      }}
-                    >
-                      {f._id === 'root' ? 'pim-notes' : f.name}
-                    </button>
-                  </span>
+                    <span
+                      role="button"
+                      className="flex-shrink-0 opacity-0 group-hover/tab:opacity-50 hover:!opacity-100 transition-opacity"
+                      onClick={e => closeTab(note._id, e)}
+                    ><X size={10} style={{ color: 'var(--text-3)' }} /></span>
+                  </button>
                 )
-              })}
-
-              {/* Leaf: active note name or journal date */}
-              {isJournal && (
-                <>
-                  <ChevronRight size={11} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-                  <span className="text-xs font-semibold truncate" style={{ color: 'var(--text-1)' }}>
-                    {isToday(parseISO(journalDate))
-                      ? `Today, ${format(parseISO(journalDate), 'MMM d')}`
-                      : format(parseISO(journalDate), 'EEE, MMM d, yyyy')}
-                  </span>
-                </>
-              )}
-              {!isJournal && activeNote && (
-                <>
-                  <ChevronRight size={11} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-                  <span className="text-xs font-semibold truncate" style={{ color: 'var(--text-1)' }}>
-                    {activeNote.name}
-                  </span>
-                </>
-              )}
-            </nav>
+              })
+            )}
 
             {/* Save indicator */}
-            <div className="flex-shrink-0 flex items-center gap-2">
-              {saving && <span className="text-xs" style={{ color: 'var(--text-3)' }}>Saving…</span>}
-              {!saving && !dirty && activeNote && (
+            <div className="ml-auto flex items-center pb-1.5 pr-1 flex-shrink-0">
+              {isActiveSaving && (
+                <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-3)' }}>
+                  <Loader2 size={10} className="animate-spin" /> Saving…
+                </span>
+              )}
+              {!isActiveSaving && !isActiveDirty && activeNote && (
                 <span className="text-xs" style={{ color: 'var(--text-3)' }}>Saved</span>
               )}
             </div>
           </div>
 
           {/* Editor body */}
-          <div className="flex-1 flex flex-col overflow-hidden" style={{ padding: '16px' }}>
+          <div className="flex-1 flex flex-col overflow-hidden p-4">
 
-            {/* ── Journal ── */}
-            {isJournal && (
-              loadingJournal ? (
-                /* Loading */
-                <div className="flex-1 flex items-center justify-center">
-                  <Loader2 size={22} className="animate-spin" style={{ color: 'var(--text-3)' }} />
-                </div>
-              ) : !activeNote && !writingJournal ? (
-                /* No entry for this date */
-                <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                  <BookOpen size={36} style={{ color: 'var(--text-3)', opacity: 0.35 }} />
-                  <p className="text-sm" style={{ color: 'var(--text-3)' }}>
-                    No entry for {isToday(parseISO(journalDate))
-                      ? 'today'
-                      : format(parseISO(journalDate), 'MMM d, yyyy')}
-                  </p>
-                  <button
-                    onClick={() => setWritingJournal(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
-                    style={{ background: 'var(--accent)', color: 'white' }}
-                  >
-                    <PenLine size={14} />
-                    Start writing
-                  </button>
-                </div>
-              ) : (
-                /* Editor */
-                <div className="flex-1 flex flex-col overflow-hidden rounded-2xl" style={{
-                  background: 'var(--surface)',
-                  boxShadow: '0 1px 6px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.06)',
-                }}>
-                  <div className="flex-1 overflow-y-auto px-10 py-10">
-                    <JournalEditor
-                      key={journalDate}
-                      content={noteContent}
-                      onChange={handleContentChange}
-                      date={journalDate}
-                    />
-                  </div>
-                </div>
-              )
+            {!activeNote && (
+              <div className="flex flex-col items-center justify-center h-full gap-3" style={{ color: 'var(--text-3)', fontSize: 14 }}>
+                <FileText size={32} style={{ opacity: 0.3 }} />
+                <p>Select a note from the sidebar to start writing</p>
+              </div>
             )}
 
-            {/* ── Regular note / flow ── */}
-            {!isJournal && !isRoot && activeNote && (
-              <div className="flex-1 flex flex-col overflow-hidden rounded-2xl" style={{
-                background: 'var(--surface)',
-                boxShadow: '0 1px 6px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.06)',
-              }}>
+            {activeNote && (
+              <div
+                className="flex-1 flex flex-col overflow-hidden rounded-2xl"
+                style={{
+                  background: 'var(--surface)',
+                  boxShadow: '0 1px 6px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.06)',
+                }}
+              >
                 {activeNote.type === 'flow' ? (
                   <MermaidEditor
                     key={activeNote._id}
-                    content={noteContent}
-                    onChange={handleContentChange}
+                    content={activeContent}
+                    onChange={c => handleContentChange(activeNote._id, c)}
                   />
                 ) : (
                   <div className="flex-1 overflow-y-auto px-10 py-10">
                     <JournalEditor
                       key={activeNote._id}
-                      content={noteContent}
-                      onChange={handleContentChange}
+                      content={activeContent}
+                      onChange={c => handleContentChange(activeNote._id, c)}
                       date={activeNote._id}
                     />
                   </div>
                 )}
               </div>
             )}
-
-            {/* ── Empty states ── */}
-            {!isJournal && (isRoot || !activeNote) && (
-              <div className="flex flex-col items-center justify-center h-full gap-3"
-                style={{ color: 'var(--text-3)', fontSize: 14 }}>
-                {isRoot
-                  ? <><Folder size={32} style={{ opacity: 0.3 }} /><p>Navigate to a folder to begin</p></>
-                  : <><FilePlus size={32} style={{ opacity: 0.3 }} /><p>Create or select a note to start writing</p></>
-                }
-              </div>
-            )}
           </div>
         </div>
       </main>
-    <FloatingChat onRefreshItems={silentRefresh} />
+      <FloatingChat onRefreshItems={silentRefresh} />
+
+      {/* ── Note delete confirm ──────────────────────────────────────────── */}
+      {confirmNote && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)' }}
+          onClick={() => setConfirmNote(null)}
+        >
+          <div
+            className="flex flex-col gap-4 rounded-2xl p-6"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.24)',
+              width: 360,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg flex-shrink-0" style={{ background: 'rgba(239,68,68,0.12)' }}>
+                <Trash2 size={16} style={{ color: '#ef4444' }} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-1)' }}>Delete note?</p>
+                <p className="text-xs" style={{ color: 'var(--text-3)' }}>
+                  <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>"{confirmNote.name}"</span> will be permanently deleted.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmNote(null)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
+                style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-2)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteNote}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
+                style={{ background: '#ef4444', color: 'white' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Folder delete confirm (type name) ───────────────────────────── */}
+      {confirmFolder && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)' }}
+          onClick={() => { setConfirmFolder(null); setFolderConfirmVal('') }}
+        >
+          <div
+            className="flex flex-col gap-4 rounded-2xl p-6"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.24)',
+              width: 400,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg flex-shrink-0" style={{ background: 'rgba(239,68,68,0.12)' }}>
+                <Trash2 size={16} style={{ color: '#ef4444' }} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-1)' }}>Delete folder?</p>
+                <p className="text-xs" style={{ color: 'var(--text-3)' }}>
+                  This will permanently delete <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>"{confirmFolder.name}"</span> and all notes and subfolders inside it.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs" style={{ color: 'var(--text-3)' }}>
+                Type <span style={{ color: 'var(--text-2)', fontWeight: 600, fontFamily: 'monospace' }}>{confirmFolder.name}</span> to confirm
+              </label>
+              <input
+                autoFocus
+                value={folderConfirmVal}
+                onChange={e => setFolderConfirmVal(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && folderConfirmVal === confirmFolder.name) confirmDeleteFolder()
+                  if (e.key === 'Escape') { setConfirmFolder(null); setFolderConfirmVal('') }
+                }}
+                placeholder={confirmFolder.name}
+                className="px-3 py-2 rounded-lg text-sm outline-none"
+                style={{
+                  background: 'var(--input-bg)',
+                  border: `1px solid ${folderConfirmVal === confirmFolder.name ? '#ef4444' : 'var(--border)'}`,
+                  color: 'var(--text-1)',
+                  transition: 'border-color 0.15s',
+                }}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setConfirmFolder(null); setFolderConfirmVal('') }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
+                style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-2)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteFolder}
+                disabled={folderConfirmVal !== confirmFolder.name}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity"
+                style={{
+                  background: folderConfirmVal === confirmFolder.name ? '#ef4444' : 'var(--input-bg)',
+                  color: folderConfirmVal === confirmFolder.name ? 'white' : 'var(--text-3)',
+                  border: `1px solid ${folderConfirmVal === confirmFolder.name ? '#ef4444' : 'var(--border)'}`,
+                  cursor: folderConfirmVal === confirmFolder.name ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.15s',
+                }}
+              >
+                Delete folder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

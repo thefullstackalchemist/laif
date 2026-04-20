@@ -23,32 +23,39 @@ const NAV: NavItem[] = [
 
 function Tooltip({ label }: { label: string }) {
   return (
-    <motion.span
-      initial={{ opacity: 0, x: -6 }}
-      animate={{ opacity: 1, x: 0  }}
-      exit={{ opacity: 0,   x: -4  }}
-      transition={{ duration: 0.12, ease: 'easeOut' }}
+    // Plain div owns the CSS positioning — Framer Motion won't touch its transform
+    <div
       style={{
-        position:   'absolute',
-        left:       'calc(100% + 12px)',
-        top:        '50%',
-        transform:  'translateY(-50%)',
-        background: 'var(--card)',
-        border:     '1px solid var(--border)',
-        color:      'var(--text-1)',
-        boxShadow:  'var(--card-shadow)',
-        borderRadius: 8,
-        padding:    '3px 10px',
-        fontSize:   12,
-        fontWeight: 500,
-        whiteSpace: 'nowrap',
+        position:      'absolute',
+        left:          'calc(100% + 12px)',
+        top:           '50%',
+        transform:     'translateY(-50%)',
         pointerEvents: 'none',
-        userSelect: 'none',
-        zIndex:     110,
+        userSelect:    'none',
+        zIndex:        110,
       }}
     >
-      {label}
-    </motion.span>
+      <motion.span
+        initial={{ opacity: 0, x: -6 }}
+        animate={{ opacity: 1, x: 0  }}
+        exit={{ opacity: 0,   x: -4  }}
+        transition={{ duration: 0.12, ease: 'easeOut' }}
+        style={{
+          display:      'block',
+          background:   'var(--card)',
+          border:       '1px solid var(--border)',
+          color:        'var(--text-1)',
+          boxShadow:    'var(--card-shadow)',
+          borderRadius: 8,
+          padding:      '3px 10px',
+          fontSize:     12,
+          fontWeight:   500,
+          whiteSpace:   'nowrap',
+        }}
+      >
+        {label}
+      </motion.span>
+    </div>
   )
 }
 
@@ -61,46 +68,44 @@ function DockBtn({
   const [hovered, setHovered] = useState(false)
 
   return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+    <motion.div
+      initial={{ x: -18, opacity: 0 }}
+      animate={{ x: 0,   opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 28, delay }}
+      whileTap={{ scale: 0.91 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ position: 'relative', borderRadius: '50%' }}
+    >
       <AnimatePresence>{hovered && <Tooltip label={label} />}</AnimatePresence>
 
-      <motion.div
-        initial={{ x: -18, opacity: 0 }}
-        animate={{ x: 0,   opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 28, delay }}
-        whileTap={{ scale: 0.91 }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{ borderRadius: '50%' }}
+      <Link
+        href={href}
+        style={{
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: 'center',
+          width:          42,
+          height:         42,
+          borderRadius:   '50%',
+          background: active
+            ? 'var(--accent)'
+            : hovered
+              ? 'rgba(99,102,241,0.14)'
+              : 'var(--dock-btn-bg)',
+          border: `1.5px solid ${
+            active  ? 'rgba(255,255,255,0.25)' :
+            hovered ? 'rgba(99,102,241,0.35)' :
+                      'var(--dock-btn-border)'
+          }`,
+          color: active ? '#fff' : hovered ? 'var(--accent)' : 'var(--text-2)',
+          boxShadow: active ? '0 0 0 3px var(--accent-glow)' : 'none',
+          transition: 'background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease',
+        }}
       >
-        <Link
-          href={href}
-          style={{
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'center',
-            width:          42,
-            height:         42,
-            borderRadius:   '50%',
-            background: active
-              ? 'var(--accent)'
-              : hovered
-                ? 'rgba(99,102,241,0.14)'
-                : 'var(--dock-btn-bg)',
-            border: `1.5px solid ${
-              active  ? 'rgba(255,255,255,0.25)' :
-              hovered ? 'rgba(99,102,241,0.35)' :
-                        'var(--dock-btn-border)'
-            }`,
-            color: active ? '#fff' : hovered ? 'var(--accent)' : 'var(--text-2)',
-            boxShadow: active ? '0 0 0 3px var(--accent-glow)' : 'none',
-            transition: 'background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease',
-          }}
-        >
-          {children}
-        </Link>
-      </motion.div>
-    </div>
+        {children}
+      </Link>
+    </motion.div>
   )
 }
 
@@ -108,45 +113,43 @@ function HomeBtn({ active, delay }: { active: boolean; delay: number }) {
   const [hovered, setHovered] = useState(false)
 
   return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+    <motion.div
+      initial={{ x: -18, opacity: 0 }}
+      animate={{ x: 0,   opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 28, delay }}
+      whileTap={{ scale: 0.91 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ position: 'relative', borderRadius: '50%' }}
+    >
       <AnimatePresence>{hovered && <Tooltip label="Home" />}</AnimatePresence>
 
-      <motion.div
-        initial={{ x: -18, opacity: 0 }}
-        animate={{ x: 0,   opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 28, delay }}
-        whileTap={{ scale: 0.91 }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{ borderRadius: '50%' }}
+      <Link
+        href="/"
+        style={{
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: 'center',
+          width:          42,
+          height:         42,
+          borderRadius:   '50%',
+          overflow:       'hidden',
+          background: active
+            ? 'rgba(255,255,255,0.15)'
+            : hovered
+              ? 'rgba(99,102,241,0.14)'
+              : 'var(--dock-btn-bg)',
+          border: `1.5px solid ${
+            active  ? 'rgba(255,255,255,0.25)' :
+            hovered ? 'rgba(99,102,241,0.35)' :
+                      'var(--dock-btn-border)'
+          }`,
+          transition: 'background 0.18s ease, border-color 0.18s ease',
+        }}
       >
-        <Link
-          href="/"
-          style={{
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'center',
-            width:          42,
-            height:         42,
-            borderRadius:   '50%',
-            overflow:       'hidden',
-            background: active
-              ? 'rgba(255,255,255,0.15)'
-              : hovered
-                ? 'rgba(99,102,241,0.14)'
-                : 'var(--dock-btn-bg)',
-            border: `1.5px solid ${
-              active  ? 'rgba(255,255,255,0.25)' :
-              hovered ? 'rgba(99,102,241,0.35)' :
-                        'var(--dock-btn-border)'
-            }`,
-            transition: 'background 0.18s ease, border-color 0.18s ease',
-          }}
-        >
-          <Image src="/logo_new.png" alt="Home" width={26} height={26} unoptimized style={{ objectFit: 'contain' }} />
-        </Link>
-      </motion.div>
-    </div>
+        <Image src="/logo_new.png" alt="Home" width={26} height={26} unoptimized style={{ objectFit: 'contain' }} />
+      </Link>
+    </motion.div>
   )
 }
 

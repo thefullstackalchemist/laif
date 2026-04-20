@@ -3,9 +3,9 @@ import { usePathname } from 'next/navigation'
 import LeftDock from './LeftDock'
 import BottomDock from './BottomDock'
 
-const NO_LEFT_DOCK  = ['/pim-notes', '/notes']
+const NO_LEFT_DOCK  = ['/pim-notes', '/notes', '/journal']
 const NO_SHELL      = ['/login']
-const NO_CARD_WRAP  = ['/pim-notes', '/notes']  // pages that manage their own panel layout
+const NO_CARD_WRAP  = ['/pim-notes', '/notes', '/journal']  // pages that manage their own panel layout
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '/'

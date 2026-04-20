@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutDashboard, BookOpen, StickyNote, type LucideIcon } from 'lucide-react'
+import { LayoutDashboard, BookOpen, StickyNote, NotebookPen, type LucideIcon } from 'lucide-react'
 
 interface DockItemDef {
   label: string
@@ -16,13 +16,19 @@ const MODES: DockItemDef[] = [
     label: 'Productivity',
     icon:  LayoutDashboard,
     href:  '/',
-    match: p => !p.startsWith('/pim-notes') && !p.startsWith('/notes') && p !== '/login',
+    match: p => !p.startsWith('/pim-notes') && !p.startsWith('/notes') && !p.startsWith('/journal') && p !== '/login',
   },
   {
     label: 'PKMS',
     icon:  BookOpen,
     href:  '/pim-notes',
     match: p => p.startsWith('/pim-notes'),
+  },
+  {
+    label: 'Journal',
+    icon:  NotebookPen,
+    href:  '/journal',
+    match: p => p.startsWith('/journal'),
   },
   {
     label: 'Notes',
