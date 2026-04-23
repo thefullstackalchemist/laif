@@ -15,6 +15,7 @@ interface AddItemModalProps {
   defaultStart?: string
   defaultEnd?: string
   defaultType?: Tab
+  defaultTitle?: string
 }
 
 const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
@@ -40,7 +41,7 @@ const hourLater = () => {
   return toLocalDT(d)
 }
 
-export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaultStart, defaultEnd, defaultType }: AddItemModalProps) {
+export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaultStart, defaultEnd, defaultType, defaultTitle }: AddItemModalProps) {
   const [tab, setTab] = useState<Tab>(defaultType ?? 'event')
   const [loading, setLoading] = useState(false)
 
@@ -70,8 +71,9 @@ export default function AddItemModal({ open, onClose, onAdd, defaultDate, defaul
       if (defaultType) setTab(defaultType)
       if (defaultStart) { setEventStart(defaultStart); setTaskDue(defaultStart); setReminderDate(defaultStart) }
       if (defaultEnd) setEventEnd(defaultEnd)
+      if (defaultTitle) setTaskTitle(defaultTitle)
     }
-  }, [open, defaultType, defaultStart, defaultEnd])
+  }, [open, defaultType, defaultStart, defaultEnd, defaultTitle])
 
   function reset() {
     setEventTitle(''); setEventDesc(''); setEventStart(now()); setEventEnd(hourLater()); setEventLocation(''); setEventNotifyBefore(15)

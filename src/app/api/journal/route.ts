@@ -15,8 +15,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ dates: entries.map((e: any) => e.date) })
   }
 
-  const entry = await JournalEntry.findOne({ date }).lean()
-  return NextResponse.json({ content: (entry as any)?.content ?? '' })
+  const entry = await JournalEntry.findOne({ date }).lean() as any
+  return NextResponse.json({
+    content:         entry?.content         ?? '',
+    last_summary:    entry?.last_summary    ?? '',
+    summary_todos:   entry?.summary_todos   ?? [],
+    today_items:     entry?.today_items     ?? [],
+    summary_fetched: entry?.summary_fetched ?? false,
+  })
 }
 
 // PUT /api/journal  { date, content }

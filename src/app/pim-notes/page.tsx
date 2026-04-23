@@ -284,7 +284,7 @@ function PimNotesInner() {
                   if (e.key === 'Escape') setRenamingId(null)
                 }}
                 onBlur={() => submitRename(folder._id)}
-                className="flex-1 text-xs bg-transparent outline-none min-w-0"
+                className="flex-1 text-sm bg-transparent outline-none min-w-0"
                 style={{ color: 'var(--text-1)', borderBottom: '1px solid var(--border-hover)' }}
               />
             </div>
@@ -294,14 +294,14 @@ function PimNotesInner() {
               className="sidebar-item flex-1 min-w-0 pr-20"
             >
               {isExpanded
-                ? <ChevronDown  size={11} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-                : <ChevronRight size={11} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                ? <ChevronDown  size={13} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                : <ChevronRight size={13} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
               }
               <Folder
-                size={12}
+                size={14}
                 style={{ color: isExpanded ? 'var(--accent-light)' : 'var(--text-3)', flexShrink: 0 }}
               />
-              <span className="truncate text-xs font-medium flex-1 text-left">{label}</span>
+              <span className="truncate text-sm font-medium flex-1 text-left">{label}</span>
               {isLoading && (
                 <Loader2 size={10} className="animate-spin flex-shrink-0" style={{ color: 'var(--text-3)' }} />
               )}
@@ -364,7 +364,7 @@ function PimNotesInner() {
                     creatingKind === 'folder' ? 'Folder name…' :
                     creatingKind === 'flow'   ? 'Diagram name…' : 'Note name…'
                   }
-                  className="flex-1 text-xs bg-transparent outline-none min-w-0"
+                  className="flex-1 text-sm bg-transparent outline-none min-w-0"
                   style={{ color: 'var(--text-1)' }}
                 />
                 <button onClick={submitCreate}>
@@ -391,10 +391,10 @@ function PimNotesInner() {
                   className={cn('sidebar-item w-full pr-6', activeTabId === note._id && 'active')}
                 >
                   {note.type === 'flow'
-                    ? <GitBranch size={11} style={{ flexShrink: 0, color: 'var(--text-3)' }} />
-                    : <FileText  size={11} style={{ flexShrink: 0, color: 'var(--text-3)' }} />
+                    ? <GitBranch size={13} style={{ flexShrink: 0, color: 'var(--text-3)' }} />
+                    : <FileText  size={13} style={{ flexShrink: 0, color: 'var(--text-3)' }} />
                   }
-                  <span className="truncate text-xs">{note.name}</span>
+                  <span className="truncate text-sm">{note.name}</span>
                 </button>
                 <button
                   onClick={() => setConfirmNote(note)}
@@ -428,7 +428,9 @@ function PimNotesInner() {
         <div
           className="flex-shrink-0 flex flex-col overflow-hidden rounded-2xl"
           style={{
-            width: 240,
+            width: '28%',
+            minWidth: 220,
+            maxWidth: 380,
             background: 'var(--card)',
             border: '1px solid var(--border)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -547,6 +549,8 @@ function PimNotesInner() {
                 className="flex-1 flex flex-col overflow-hidden rounded-2xl"
                 style={{
                   background: 'var(--surface)',
+                  backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
+                  backgroundSize: '20px 20px',
                   boxShadow: '0 1px 6px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.06)',
                 }}
               >

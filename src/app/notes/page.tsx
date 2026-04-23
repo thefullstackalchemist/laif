@@ -10,7 +10,7 @@ export default function NotesPage() {
   const { notes, addNote, updateNote, deleteNote, maxReached } = useNotes()
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden min-h-0">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <header
         className="flex-shrink-0 flex items-center gap-3 px-6 py-3"
