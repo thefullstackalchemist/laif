@@ -298,6 +298,16 @@
     background: var(--sidebar-active-bg);
     color: var(--sidebar-active-color);
   }
+
+  /* ── Paper-feel dot grid — apply to the editor surface container ────── */
+  .paper-bg {
+    background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+    background-position: 11px 11px;
+  }
+  [data-theme="light"] .paper-bg {
+    background-image: radial-gradient(circle, rgba(80,90,120,0.13) 1.5px, transparent 1.5px);
+  }
 }
 
 @layer utilities {

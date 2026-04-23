@@ -437,11 +437,9 @@ export default function JournalPage() {
               </div>
             ) : (
               <div
-                className="flex-1 flex flex-col overflow-hidden rounded-2xl"
+                className="paper-bg flex-1 flex flex-col overflow-hidden rounded-2xl"
                 style={{
-                  background: 'var(--surface)',
-                  backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
-                  backgroundSize: '20px 20px',
+                  backgroundColor: 'var(--surface)',
                   boxShadow: '0 1px 6px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.06)',
                 }}
               >
