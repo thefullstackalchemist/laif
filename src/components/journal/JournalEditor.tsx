@@ -310,7 +310,7 @@ export default function JournalEditor({ content, onChange, date }: Props) {
       {editor && (
         <BubbleMenu
           editor={editor}
-          tippyOptions={{ duration: 120, placement: 'top' }}
+          options={{ placement: 'top' }}
         >
           <Toolbar editor={editor} />
         </BubbleMenu>
