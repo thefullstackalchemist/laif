@@ -8,7 +8,7 @@ import ClockWidget from '@/components/dashboard/ClockWidget'
 import MiniCalendarWidget from '@/components/dashboard/MiniCalendarWidget'
 import WeatherWidget from '@/components/dashboard/WeatherWidget'
 import AllItemsWidget from '@/components/dashboard/AllItemsWidget'
-import PomodoroWidget from '@/components/dashboard/PomodoroWidget'
+import HealthSummaryWidget from '@/components/dashboard/HealthSummaryWidget'
 import DailyJournalWidget from '@/components/dashboard/DailyJournalWidget'
 import AIBriefWidget from '@/components/dashboard/AIBriefWidget'
 import PWAInstallButton from '@/components/PWAInstallButton'
@@ -146,7 +146,7 @@ export default function DashboardPage() {
             </BentoCard>
 
             <BentoCard style={{ gridColumn: '1', gridRow: '2' }}>
-              <PomodoroWidget items={items} />
+              <HealthSummaryWidget />
             </BentoCard>
 
             <BentoCard style={{ gridColumn: '2', gridRow: '2', display: 'flex', flexDirection: 'column' }}>

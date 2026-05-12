@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, isToday, isTomorrow, isFuture, isPast } from 'date-fns'
+import { format, isToday, isTomorrow, isPast, isFuture } from 'date-fns'
 import { MapPin, AlertCircle, CheckCircle2, Circle, MessageSquare } from 'lucide-react'
 import { ITEM_COLORS, ITEM_BG, formatTime } from '@/lib/utils'
 import ItemDetailPanel from './ItemDetailPanel'
@@ -67,7 +67,7 @@ interface AgendaViewProps {
 }
 
 export default function AgendaView({ items, onItemClick, onUpdateItem, onDeleteItem }: AgendaViewProps) {
-  const [filter, setFilter]         = useState<TaskFilter>('all')
+  const [filter, setFilter]         = useState<TaskFilter>('active')
   const [selected, setSelected]     = useState<AnyItem | null>(null)
   const [localItems, setLocalItems] = useState<AnyItem[]>(items)
 
@@ -76,27 +76,31 @@ export default function AgendaView({ items, onItemClick, onUpdateItem, onDeleteI
     return local ?? pi
   })
 
-  const upcoming = merged.filter(item => {
-    if (item.type === 'task') return true
-    const dateStr = item.type === 'event' ? item.startDate : (item as Reminder).reminderDate
-    if (!dateStr) return false
-    const d = new Date(dateStr)
-    return isFuture(d) || isToday(d)
-  })
+  function isItemActive(item: AnyItem): boolean {
+    if (item.type === 'task')     return (item as Task).status !== 'done'
+    if (item.type === 'reminder') { const d = new Date((item as Reminder).reminderDate); return isToday(d) || isFuture(d) }
+    if (item.type === 'event')    { const d = new Date((item as CalendarEvent).endDate ?? item.startDate); return isToday(d) || isFuture(d) }
+    return true
+  }
 
-  const filtered = upcoming.filter(item => {
-    if (item.type !== 'task') return true
-    const status = (item as Task).status
-    if (filter === 'active') return status !== 'done'
-    if (filter === 'done')   return status === 'done'
+  function isItemDone(item: AnyItem): boolean {
+    if (item.type === 'task')     return (item as Task).status === 'done'
+    if (item.type === 'reminder') return isPast(new Date((item as Reminder).reminderDate)) && !isToday(new Date((item as Reminder).reminderDate))
+    if (item.type === 'event')    return isPast(new Date((item as CalendarEvent).endDate ?? item.startDate)) && !isToday(new Date((item as CalendarEvent).endDate ?? item.startDate))
+    return false
+  }
+
+  const filtered = merged.filter(item => {
+    if (filter === 'active') return isItemActive(item)
+    if (filter === 'done')   return isItemDone(item)
     return true
   })
 
   const grouped = groupByDate(filtered)
 
   const taskCount = {
-    active: upcoming.filter(i => i.type === 'task' && (i as Task).status !== 'done').length,
-    done:   upcoming.filter(i => i.type === 'task' && (i as Task).status === 'done').length,
+    active: merged.filter(isItemActive).length,
+    done:   merged.filter(isItemDone).length,
   }
 
   function toggleTaskDone(task: Task) {
@@ -122,9 +126,9 @@ export default function AgendaView({ items, onItemClick, onUpdateItem, onDeleteI
         {/* Filter bar */}
         <div className="flex items-center gap-1.5 px-4 pt-3 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
           {([
-            { id: 'all',    label: 'All' },
             { id: 'active', label: `Active${taskCount.active ? ` ${taskCount.active}` : ''}` },
             { id: 'done',   label: `Done${taskCount.done ? ` ${taskCount.done}` : ''}` },
+            { id: 'all',    label: 'All' },
           ] as { id: TaskFilter; label: string }[]).map(p => (
             <button
               key={p.id}

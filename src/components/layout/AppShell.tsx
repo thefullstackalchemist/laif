@@ -24,7 +24,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     >
       <div
         className="flex flex-col flex-1 overflow-hidden min-w-0"
-        style={{ paddingLeft: showLeftDock ? 76 : 0 }}
+        style={{ paddingLeft: showLeftDock ? 76 : 0, paddingBottom: 72 }}
       >
         {/* Card panel — pages that manage their own layout skip this */}
         {showCardWrap ? (
@@ -45,10 +45,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         )}
-        <BottomDock />
       </div>
 
       {showLeftDock && <LeftDock />}
+      <BottomDock />
     </div>
   )
 }

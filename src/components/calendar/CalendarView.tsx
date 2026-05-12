@@ -9,7 +9,7 @@ import WeekView from './WeekView'
 import DayView from './DayView'
 import AgendaView from './AgendaView'
 import { cn } from '@/lib/utils'
-import type { AnyItem } from '@/types'
+import type { AnyItem, Holiday, Birthday } from '@/types'
 
 export type CalView = 'month' | 'week' | 'day' | 'agenda'
 
@@ -17,6 +17,8 @@ interface CalendarViewProps {
   view: CalView
   items: AnyItem[]
   loading: boolean
+  holidays?: Holiday[]
+  birthdays?: Birthday[]
   onItemClick?: (item: AnyItem) => void
   onNewItem?: (start: Date, end: Date) => void
   onViewChange?: (v: CalView) => void
@@ -28,9 +30,10 @@ const VIEW_PILLS: { id: CalView; label: string }[] = [
   { id: 'month',  label: 'Month'  },
   { id: 'week',   label: 'Week'   },
   { id: 'day',    label: 'Day'    },
+  { id: 'agenda', label: 'List'   },
 ]
 
-export default function CalendarView({ view, items, loading, onItemClick, onNewItem, onViewChange, onUpdateItem, onDeleteItem }: CalendarViewProps) {
+export default function CalendarView({ view, items, loading, holidays = [], birthdays = [], onItemClick, onNewItem, onViewChange, onUpdateItem, onDeleteItem }: CalendarViewProps) {
   const [current, setCurrent] = useState(new Date())
 
   const goBack = () => {
@@ -127,6 +130,8 @@ export default function CalendarView({ view, items, loading, onItemClick, onNewI
               year={current.getFullYear()}
               month={current.getMonth()}
               items={items}
+              holidays={holidays}
+              birthdays={birthdays}
               onItemClick={onItemClick}
             />
           )}

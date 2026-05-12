@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutDashboard, BookOpen, StickyNote, NotebookPen, type LucideIcon } from 'lucide-react'
+import { LayoutDashboard, BookOpen, StickyNote, NotebookPen, Heart, type LucideIcon } from 'lucide-react'
 
 interface DockItemDef {
   label: string
@@ -16,7 +16,7 @@ const MODES: DockItemDef[] = [
     label: 'Productivity',
     icon:  LayoutDashboard,
     href:  '/',
-    match: p => !p.startsWith('/pim-notes') && !p.startsWith('/notes') && !p.startsWith('/journal') && p !== '/login',
+    match: p => !p.startsWith('/pim-notes') && !p.startsWith('/notes') && !p.startsWith('/journal') && !p.startsWith('/health') && p !== '/login',
   },
   {
     label: 'PKMS',
@@ -35,6 +35,12 @@ const MODES: DockItemDef[] = [
     icon:  StickyNote,
     href:  '/notes',
     match: p => p.startsWith('/notes'),
+  },
+  {
+    label: 'Health',
+    icon:  Heart,
+    href:  '/health',
+    match: p => p.startsWith('/health'),
   },
 ]
 
@@ -124,7 +130,7 @@ export default function BottomDock() {
   const router   = useRouter()
 
   return (
-    <div className="flex justify-center flex-shrink-0" style={{ paddingBottom: 14, paddingTop: 4 }}>
+    <div style={{ position: 'fixed', bottom: 6, left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}>
       <motion.div
         className="flex items-center"
         style={{

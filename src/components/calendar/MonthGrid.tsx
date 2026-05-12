@@ -2,8 +2,8 @@
 import { motion } from 'framer-motion'
 import { format, isSameMonth, isToday, isWeekend } from 'date-fns'
 import { cn, getCalendarDays, getItemsForDay, ITEM_COLORS, ITEM_BG } from '@/lib/utils'
-import type { AnyItem } from '@/types'
-import { Calendar, CheckSquare, Bell } from 'lucide-react'
+import type { AnyItem, Holiday, Birthday } from '@/types'
+import { Calendar, CheckSquare, Bell, Cake } from 'lucide-react'
 
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const ICONS = { event: Calendar, task: CheckSquare, reminder: Bell }
@@ -12,12 +12,17 @@ interface MonthGridProps {
   year: number
   month: number
   items: AnyItem[]
+  holidays?: Holiday[]
+  birthdays?: Birthday[]
   onDayClick?: (date: Date) => void
   onItemClick?: (item: AnyItem) => void
 }
 
-export default function MonthGrid({ year, month, items, onDayClick, onItemClick }: MonthGridProps) {
+export default function MonthGrid({ year, month, items, holidays = [], birthdays = [], onDayClick, onItemClick }: MonthGridProps) {
   const days = getCalendarDays(year, month)
+
+  function yyyymmdd(day: Date): string { return format(day, 'yyyy-MM-dd') }
+  function mmdd(day: Date): string     { return format(day, 'MM-dd') }
 
   return (
     <div className="flex flex-col h-full">
@@ -40,12 +45,17 @@ export default function MonthGrid({ year, month, items, onDayClick, onItemClick 
         style={{ gridTemplateRows: `repeat(${days.length / 7}, minmax(0, 1fr))` }}
       >
         {days.map((day, idx) => {
-          const dayItems = getItemsForDay(items, day)
-          const inMonth  = isSameMonth(day, new Date(year, month))
-          const today    = isToday(day)
-          const weekend  = isWeekend(day)
-          const visible  = dayItems.slice(0, 3)
-          const overflow = dayItems.length - 3
+          const dayItems   = getItemsForDay(items, day)
+          const inMonth    = isSameMonth(day, new Date(year, month))
+          const today      = isToday(day)
+          const weekend    = isWeekend(day)
+          const visible    = dayItems.slice(0, 3)
+          const overflow   = dayItems.length - 3
+          const isHoliday  = holidays.some(h => h.date === yyyymmdd(day))
+          const bdayNames  = birthdays.filter(b =>
+            b.date.length === 5 ? b.date === mmdd(day) : b.date === yyyymmdd(day)
+          ).map(b => b.name)
+          const hasBirthday = bdayNames.length > 0
 
           return (
             <div
@@ -60,8 +70,20 @@ export default function MonthGrid({ year, month, items, onDayClick, onItemClick 
               style={{
                 borderRight:  idx % 7 !== 6 ? '1px solid var(--cal-col-border)' : undefined,
                 borderBottom: idx < days.length - 7 ? '1px solid var(--cal-col-border)' : undefined,
+                ...(isHoliday && { boxShadow: 'inset 0 0 0 2px #f59e0b' }),
               }}
             >
+              {/* Birthday cake badge */}
+              {hasBirthday && (
+                <div
+                  title={bdayNames.join(', ')}
+                  className="absolute top-1 left-1 z-10"
+                  style={{ color: '#ec4899' }}
+                >
+                  <Cake size={11} />
+                </div>
+              )}
+
               {/* Date number */}
               <div className="flex items-start justify-end mb-1">
                 <span

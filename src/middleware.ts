@@ -12,6 +12,8 @@ const PUBLIC_PREFIXES = [
   '/api/auth/logout',
   '/api/posthook_listener',
   '/api/devices/register',
+  '/api/health/ingest',
+  '/api/health/status',
   '/_next',
   '/favicon',
 ]

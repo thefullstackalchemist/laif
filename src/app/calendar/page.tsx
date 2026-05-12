@@ -5,7 +5,7 @@ import CalendarView, { type CalView } from '@/components/calendar/CalendarView'
 import AddItemModal from '@/components/modals/AddItemModal'
 import FloatingChat from '@/components/chat/FloatingChat'
 import { useItems } from '@/hooks/useItems'
-import type { AnyItem } from '@/types'
+import type { AnyItem, Holiday, Birthday } from '@/types'
 
 const VALID_VIEWS: CalView[] = ['agenda', 'month', 'week', 'day']
 
@@ -21,6 +21,13 @@ function CalendarContent() {
   const [modalOpen, setModalOpen] = useState(false)
   const [dragStart, setDragStart] = useState<string | undefined>()
   const [dragEnd,   setDragEnd]   = useState<string | undefined>()
+  const [holidays,  setHolidays]  = useState<Holiday[]>([])
+  const [birthdays, setBirthdays] = useState<Birthday[]>([])
+
+  useEffect(() => {
+    fetch('/api/holidays').then(r => r.json()).then(setHolidays).catch(() => {})
+    fetch('/api/birthdays').then(r => r.json()).then(setBirthdays).catch(() => {})
+  }, [])
 
   // Sync view when URL param changes (same-route navigation from dock)
   useEffect(() => {
@@ -49,6 +56,8 @@ function CalendarContent() {
           view={view}
           items={items}
           loading={loading}
+          holidays={holidays}
+          birthdays={birthdays}
           onItemClick={() => {}}
           onNewItem={handleNewItem}
           onViewChange={setView}

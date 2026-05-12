@@ -87,6 +87,19 @@ export interface Memory {
   createdAt?: string
 }
 
+// ─── Holiday / Birthday ───────────────────────────────────────────────────────
+export interface Holiday {
+  _id?: string
+  name: string
+  date: string // "MM-DD" annual
+}
+
+export interface Birthday {
+  _id?: string
+  name: string
+  date: string // "MM-DD" annual
+}
+
 // ─── Contact ──────────────────────────────────────────────────────────────────
 export interface Contact {
   _id?: string

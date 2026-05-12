@@ -4,7 +4,7 @@ if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET env variable is not set
 const SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
 
 const COOKIE_NAME = 'pim_token'
-const TOKEN_EXPIRY = '24h'
+const TOKEN_EXPIRY = '30d'
 
 export interface TokenPayload extends JWTPayload {
   userId: string

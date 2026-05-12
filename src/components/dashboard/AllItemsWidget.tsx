@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Calendar, CheckSquare, Bell, CheckCircle2, Circle, List, ArrowUpRight } from 'lucide-react'
-import { isToday, isTomorrow, isPast, format, isThisYear } from 'date-fns'
+import { isToday, isTomorrow, isPast, isFuture, format, isThisYear } from 'date-fns'
 import type { AnyItem, CalendarEvent, Task, Reminder } from '@/types'
 import { ITEM_COLORS } from '@/lib/utils'
 
@@ -55,8 +55,14 @@ export default function AllItemsWidget({ items, onUpdateItem }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
 
   const visible = items.filter(item => {
-    if (item.type === 'event')    return !isPast(new Date((item as CalendarEvent).endDate ?? (item as CalendarEvent).startDate))
-    if (item.type === 'reminder') return !isPast(new Date((item as Reminder).reminderDate))
+    if (item.type === 'event') {
+      const d = new Date((item as CalendarEvent).endDate ?? (item as CalendarEvent).startDate)
+      return isFuture(d) || isToday(d)
+    }
+    if (item.type === 'reminder') {
+      const d = new Date((item as Reminder).reminderDate)
+      return isFuture(d) || isToday(d)
+    }
     return true // tasks always shown
   })
 

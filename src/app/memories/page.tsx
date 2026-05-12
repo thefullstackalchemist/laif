@@ -32,6 +32,7 @@ export default function MemoriesPage() {
 
   useEffect(() => { loadMemories() }, [loadMemories])
 
+
   // ── Handlers ──────────────────────────────────────────────────
   async function handleAdd(text: string) {
     setAdding(true)
