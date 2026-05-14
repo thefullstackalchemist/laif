@@ -8,6 +8,7 @@ const SECRET = new TextEncoder().encode(process.env.JWT_SECRET ?? '')
 /** Paths that don't require authentication */
 const PUBLIC_PREFIXES = [
   '/login',
+  '/authorize',
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/token',
