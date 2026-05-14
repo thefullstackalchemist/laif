@@ -10,10 +10,12 @@ const PUBLIC_PREFIXES = [
   '/login',
   '/api/auth/login',
   '/api/auth/logout',
+  '/api/auth/token',
   '/api/posthook_listener',
   '/api/devices/register',
   '/api/health/ingest',
   '/api/health/status',
+  '/.well-known',
   '/_next',
   '/favicon',
 ]
@@ -30,6 +32,12 @@ export async function middleware(request: NextRequest) {
   // Machine auth — MCP server and other programmatic callers
   const apiKey = request.headers.get('x-api-key')
   if (apiKey && apiKey === process.env.PUBLIC_AUTH_SECRET) {
+    return NextResponse.next()
+  }
+
+  // OAuth Bearer token (Claude Desktop remote MCP)
+  const auth = request.headers.get('authorization')
+  if (auth?.startsWith('Bearer ') && auth.slice(7) === process.env.PUBLIC_AUTH_SECRET) {
     return NextResponse.next()
   }
 
