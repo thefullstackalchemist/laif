@@ -16,6 +16,7 @@ const PUBLIC_PREFIXES = [
   '/api/health/ingest',
   '/api/health/status',
   '/.well-known',
+  '/api/well-known',
   '/_next',
   '/favicon',
 ]
