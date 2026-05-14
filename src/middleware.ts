@@ -27,6 +27,12 @@ export async function middleware(request: NextRequest) {
 
   if (isPublic(pathname)) return NextResponse.next()
 
+  // Machine auth — MCP server and other programmatic callers
+  const apiKey = request.headers.get('x-api-key')
+  if (apiKey && apiKey === process.env.PUBLIC_AUTH_SECRET) {
+    return NextResponse.next()
+  }
+
   const token = request.cookies.get(COOKIE_NAME)?.value
 
   if (!token) {

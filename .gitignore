@@ -11,6 +11,7 @@ build/
 # Environment files — never commit secrets
 .env
 .env.local
+.mcp.json
 .env.development.local
 .env.test.local
 .env.production.local
