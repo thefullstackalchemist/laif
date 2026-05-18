@@ -307,6 +307,22 @@ server.tool(
   async ({ name, parent_id }) => ok(await api('POST', '/api/fs-folders', { name, parent: parent_id })),
 )
 
+server.tool(
+  'pkms_create_flow',
+  'Create a new Mermaid diagram file inside a folder. Content should be valid Mermaid syntax.',
+  {
+    name:      z.string().describe('Diagram name / filename'),
+    folder_id: z.string().describe('Parent folder _id. Use "root" for top-level.'),
+    content:   z.string().optional().describe('Initial Mermaid syntax. Defaults to a simple flowchart.'),
+  },
+  async ({ name, folder_id, content }) => ok(await api('POST', '/api/fs-notes', {
+    name,
+    parent:  folder_id,
+    type:    'flow',
+    content: content ?? 'flowchart TD\n    A[Start] --> B[End]',
+  })),
+)
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MEMORIES
 // ══════════════════════════════════════════════════════════════════════════════

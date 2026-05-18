@@ -231,6 +231,19 @@ const TOOLS = [
     },
   },
   {
+    name: 'pkms_create_flow',
+    description: 'Create a new Mermaid diagram file inside a folder. Content should be valid Mermaid syntax.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name:      { type: 'string', description: 'Diagram name / filename' },
+        folder_id: { type: 'string', description: 'Parent folder _id. Use "root" for top-level.' },
+        content:   { type: 'string', description: 'Initial Mermaid syntax. Defaults to a simple flowchart.' },
+      },
+      required: ['name', 'folder_id'],
+    },
+  },
+  {
     name: 'pkms_create_folder',
     description: 'Create a new folder inside a parent folder. Equivalent to `mkdir <name>`.',
     inputSchema: {
@@ -392,6 +405,13 @@ async function handleToolCall(
       if (!match) return { error: `Note "${noteName}" not found in folder "${folderId}"` }
       return callApi(host, 'PUT', `/api/fs-notes/${match._id}`, { content })
     }
+    case 'pkms_create_flow':
+      return callApi(host, 'POST', '/api/fs-notes', {
+        name:    args.name,
+        parent:  args.folder_id,
+        type:    'flow',
+        content: args.content ?? 'flowchart TD\n    A[Start] --> B[End]',
+      })
     case 'pkms_create_folder':
       return callApi(host, 'POST', '/api/fs-folders', { name: args.name, parent: args.parent_id })
     // Memories
