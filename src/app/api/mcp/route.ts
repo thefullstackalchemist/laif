@@ -190,6 +190,34 @@ const TOOLS = [
     },
   },
   {
+    name: 'pkms_list_fs',
+    description: 'List the entire PKMS file system as a tree. Returns all folders and note names (no content). Use this first to orient yourself.',
+    inputSchema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'pkms_open_folder',
+    description: 'Open a folder and list its direct contents — child folders and note names (no content). Equivalent to `cd <folder> && ls`.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        folder_id: { type: 'string', description: 'Folder _id. Use "root" for the top-level folder.' },
+      },
+      required: ['folder_id'],
+    },
+  },
+  {
+    name: 'pkms_read_note',
+    description: 'Read a note by name within a folder. Returns full content (TipTap JSON). Equivalent to `cat <filename>`.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name:      { type: 'string', description: 'Note name / title to find' },
+        folder_id: { type: 'string', description: 'Parent folder _id to search within' },
+      },
+      required: ['name', 'folder_id'],
+    },
+  },
+  {
     name: 'list_memories',
     description: 'List all captured memories.',
     inputSchema: { type: 'object', properties: {}, required: [] },
@@ -288,6 +316,48 @@ async function handleToolCall(
     case 'create_note': return callApi(host, 'POST', '/api/fs-notes', args)
     case 'update_note': return callApi(host, 'PUT', `/api/fs-notes/${id}`, rest)
     case 'delete_note': return callApi(host, 'DELETE', `/api/fs-notes/${id}`)
+    // PKMS navigation
+    case 'pkms_list_fs': {
+      const [folders, notes] = await Promise.all([
+        callApi(host, 'GET', '/api/fs-folders') as Promise<Array<{ _id: string; name: string; parent: string | null }>>,
+        callApi(host, 'GET', '/api/fs-notes')   as Promise<Array<{ _id: string; name: string; parent: string; type: string }>>,
+      ])
+      const tree: Record<string, unknown> = {}
+      for (const f of folders) {
+        tree[f._id] = { folder: { _id: f._id, name: f.name }, subfolders: [] as typeof folders, notes: [] as typeof notes }
+      }
+      for (const f of folders) {
+        if (f.parent && (tree[f.parent] as { subfolders: typeof folders } | undefined)) {
+          (tree[f.parent] as { subfolders: typeof folders }).subfolders.push(f)
+        }
+      }
+      for (const n of notes) {
+        if (tree[n.parent]) {
+          (tree[n.parent] as { notes: typeof notes }).notes.push({ _id: n._id, name: n.name, parent: n.parent, type: n.type })
+        }
+      }
+      return tree
+    }
+    case 'pkms_open_folder': {
+      const folderId = args.folder_id as string
+      const [folders, notes] = await Promise.all([
+        callApi(host, 'GET', '/api/fs-folders') as Promise<Array<{ _id: string; name: string; parent: string | null }>>,
+        callApi(host, 'GET', `/api/fs-notes?parent=${encodeURIComponent(folderId)}`) as Promise<Array<{ _id: string; name: string; type: string }>>,
+      ])
+      return {
+        folder_id: folderId,
+        subfolders: folders.filter(f => f.parent === folderId),
+        notes: notes.map(n => ({ _id: n._id, name: n.name, type: n.type })),
+      }
+    }
+    case 'pkms_read_note': {
+      const noteName = args.name as string
+      const folderId = args.folder_id as string
+      const notes = await callApi(host, 'GET', `/api/fs-notes?parent=${encodeURIComponent(folderId)}`) as Array<{ _id: string; name: string }>
+      const match = notes.find(n => n.name.toLowerCase() === noteName.toLowerCase())
+      if (!match) return { error: `Note "${noteName}" not found in folder "${folderId}"` }
+      return callApi(host, 'GET', `/api/fs-notes/${match._id}`)
+    }
     // Memories
     case 'list_memories':  return callApi(host, 'GET', '/api/memories')
     case 'create_memory':  return callApi(host, 'POST', '/api/memories', args)

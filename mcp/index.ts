@@ -217,6 +217,71 @@ server.tool(
 )
 
 // ══════════════════════════════════════════════════════════════════════════════
+// PKMS  (file-system navigation over fs-folders + fs-notes)
+// ══════════════════════════════════════════════════════════════════════════════
+
+server.tool(
+  'pkms_list_fs',
+  'List the entire PKMS file system as a tree. Returns all folders and note names (no content). Use this first to orient yourself.',
+  {},
+  async () => {
+    const [folders, notes] = await Promise.all([
+      api('GET', '/api/fs-folders') as Promise<Array<{ _id: string; name: string; parent: string | null }>>,
+      api('GET', '/api/fs-notes')   as Promise<Array<{ _id: string; name: string; parent: string; type: string }>>,
+    ])
+
+    // Build tree: folder → { subfolders, notes }
+    const tree: Record<string, { folder: { _id: string; name: string }; subfolders: typeof folders; notes: typeof notes }> = {}
+    for (const f of folders) {
+      tree[f._id] = { folder: { _id: f._id, name: f.name }, subfolders: [], notes: [] }
+    }
+    for (const f of folders) {
+      if (f.parent && tree[f.parent]) tree[f.parent].subfolders.push(f)
+    }
+    for (const n of notes) {
+      if (tree[n.parent]) tree[n.parent].notes.push({ _id: n._id, name: n.name, parent: n.parent, type: n.type })
+    }
+
+    return ok(tree)
+  },
+)
+
+server.tool(
+  'pkms_open_folder',
+  'Open a folder and list its direct contents — child folders and note names (no content). Equivalent to `cd <folder> && ls`.',
+  {
+    folder_id: z.string().describe('Folder _id. Use "root" for the top-level folder.'),
+  },
+  async ({ folder_id }) => {
+    const [folders, notes] = await Promise.all([
+      api('GET', '/api/fs-folders') as Promise<Array<{ _id: string; name: string; parent: string | null }>>,
+      api('GET', `/api/fs-notes?parent=${encodeURIComponent(folder_id)}`) as Promise<Array<{ _id: string; name: string; type: string }>>,
+    ])
+    const subfolders = folders.filter(f => f.parent === folder_id)
+    return ok({
+      folder_id,
+      subfolders,
+      notes: notes.map(n => ({ _id: n._id, name: n.name, type: n.type })),
+    })
+  },
+)
+
+server.tool(
+  'pkms_read_note',
+  'Read a note by name within a folder. Returns full content (TipTap JSON). Equivalent to `cat <filename>`.',
+  {
+    name:      z.string().describe('Note name / title to find'),
+    folder_id: z.string().describe('Parent folder _id to search within'),
+  },
+  async ({ name, folder_id }) => {
+    const notes = await api('GET', `/api/fs-notes?parent=${encodeURIComponent(folder_id)}`) as Array<{ _id: string; name: string }>
+    const match = notes.find(n => n.name.toLowerCase() === name.toLowerCase())
+    if (!match) return ok({ error: `Note "${name}" not found in folder "${folder_id}"` })
+    return ok(await api('GET', `/api/fs-notes/${match._id}`))
+  },
+)
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MEMORIES
 // ══════════════════════════════════════════════════════════════════════════════
 
