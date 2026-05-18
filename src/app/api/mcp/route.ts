@@ -218,6 +218,31 @@ const TOOLS = [
     },
   },
   {
+    name: 'pkms_write_note',
+    description: 'Write content to a note found by name within a folder. Overwrites existing content. Equivalent to `echo ... > <filename>`.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name:      { type: 'string', description: 'Note name / title to find' },
+        folder_id: { type: 'string', description: 'Parent folder _id to search within' },
+        content:   { type: 'string', description: 'New content to write (plain text or TipTap JSON)' },
+      },
+      required: ['name', 'folder_id', 'content'],
+    },
+  },
+  {
+    name: 'pkms_create_folder',
+    description: 'Create a new folder inside a parent folder. Equivalent to `mkdir <name>`.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name:      { type: 'string', description: 'Folder name' },
+        parent_id: { type: 'string', description: 'Parent folder _id. Use "root" for top-level.' },
+      },
+      required: ['name', 'parent_id'],
+    },
+  },
+  {
     name: 'list_memories',
     description: 'List all captured memories.',
     inputSchema: { type: 'object', properties: {}, required: [] },
@@ -358,6 +383,17 @@ async function handleToolCall(
       if (!match) return { error: `Note "${noteName}" not found in folder "${folderId}"` }
       return callApi(host, 'GET', `/api/fs-notes/${match._id}`)
     }
+    case 'pkms_write_note': {
+      const noteName = args.name as string
+      const folderId = args.folder_id as string
+      const content  = args.content as string
+      const notes = await callApi(host, 'GET', `/api/fs-notes?parent=${encodeURIComponent(folderId)}`) as Array<{ _id: string; name: string }>
+      const match = notes.find(n => n.name.toLowerCase() === noteName.toLowerCase())
+      if (!match) return { error: `Note "${noteName}" not found in folder "${folderId}"` }
+      return callApi(host, 'PUT', `/api/fs-notes/${match._id}`, { content })
+    }
+    case 'pkms_create_folder':
+      return callApi(host, 'POST', '/api/fs-folders', { name: args.name, parent: args.parent_id })
     // Memories
     case 'list_memories':  return callApi(host, 'GET', '/api/memories')
     case 'create_memory':  return callApi(host, 'POST', '/api/memories', args)

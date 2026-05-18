@@ -281,6 +281,32 @@ server.tool(
   },
 )
 
+server.tool(
+  'pkms_write_note',
+  'Write content to a note found by name within a folder. Equivalent to `echo ... > <filename>`. Overwrites existing content.',
+  {
+    name:      z.string().describe('Note name / title to find'),
+    folder_id: z.string().describe('Parent folder _id to search within'),
+    content:   z.string().describe('New content to write (plain text or TipTap JSON)'),
+  },
+  async ({ name, folder_id, content }) => {
+    const notes = await api('GET', `/api/fs-notes?parent=${encodeURIComponent(folder_id)}`) as Array<{ _id: string; name: string }>
+    const match = notes.find(n => n.name.toLowerCase() === name.toLowerCase())
+    if (!match) return ok({ error: `Note "${name}" not found in folder "${folder_id}"` })
+    return ok(await api('PUT', `/api/fs-notes/${match._id}`, { content }))
+  },
+)
+
+server.tool(
+  'pkms_create_folder',
+  'Create a new folder inside a parent folder. Equivalent to `mkdir <name>`.',
+  {
+    name:      z.string().describe('Folder name'),
+    parent_id: z.string().describe('Parent folder _id. Use "root" for top-level.'),
+  },
+  async ({ name, parent_id }) => ok(await api('POST', '/api/fs-folders', { name, parent: parent_id })),
+)
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MEMORIES
 // ══════════════════════════════════════════════════════════════════════════════
